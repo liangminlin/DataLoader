@@ -85,6 +85,10 @@ if __name__ == "__main__":
     app.load()
 ```
 
+运行（`examples/src`）：
+
+`$ make init-demo && make run-demo`
+
 ## 待解决
 
 目前问题列表：

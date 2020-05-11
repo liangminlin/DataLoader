@@ -10,7 +10,13 @@
 
 * 运行DEMO（CPL-SERVICE)：`make init-demo && make run-demo`
 
-##  一、配置
+## 引入
+
+（暂未支持pip方式）目前可手动打包：`$ make dist`
+
+> $ pip3 install git+https://<token\>@github.com/artsalliancemedia/producer2-stress-testing@<version\>#egg=dataloader
+
+##  配置
 
 至少需要在配置当中指定数据库的连接地址，目前支持的数据库类型为Postgres和MySQL：
 
@@ -26,7 +32,7 @@
 
 
 
-## 二、例子
+## 例子
 
 以cpl-service为例来写个小demo：
 
@@ -79,7 +85,7 @@ if __name__ == "__main__":
     app.load()
 ```
 
-## 三、待解决
+## 待解决
 
 目前问题列表：
 

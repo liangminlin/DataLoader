@@ -28,108 +28,62 @@
 
 ## 二、例子
 
-假定我们拥有一个名为`dltest`的数据库，其中有如下两张表
-
-`books`
-
-| bid  | author | isbn              | name   | created             |
-| ---- | ------ | ----------------- | ------ | ------------------- |
-| 1    | Abby   | 978-3-16-148410-0 | Book X | 2020/01/01 00:12:12 |
-| 2    | Beata  | 978-3-16-148410-1 | Book Y | 2020/01/01 00:12:12 |
-
-`order`
-
-| oid  | buyer_id | bid  | total | created             |
-| ---- | -------- | ---- | ----- | ------------------- |
-| 1    | 1        | 2    | 5     | 2020/05/01 00:12:12 |
-
-由于表之间存在关系`order.bid <=> books.bid`，所以在构造测试数据的时候就需要保证存在这个关系
-
-
-
-### 使用`dataloader`快速构造测试数据：
-
-建立项目，名为loader，结构如下：
-
-```
-loader/
-    —— __init__.py        # 模块定义与入口
-    —— config.py          # 配置文件
-    —— app.py             # 应用定义
-    —— load_session.py    # 数据量及数据关系定义
-```
-
-`config.py`
+以cpl-service为例来写个小demo：
 
 ```python
+from dataloader import fast_rand
+from dataloader import DataLoader, LoadSession
+
+cs = LoadSession(__name__)   # 定义Load Session
+
+
 class Config(object):
-    # 你可以指定单个数据库以进行操作
-    DATABASE_URL = "postgresql://postgres:123456@localhost:5432/dltest"
-    
-    # 也可以同时指定多个数据库连接以进行同时操作，类似这样：
-    DATABASE_URLS = [
-        "mysql://postgres:123456@anotherdb:3306/dltest",
-        "postgresql://postgres:123456@localhost:5432/dltest",
-    ]
-```
-
-`load_session.py`
-
-```python
-from dataloader import LoadSession
-
-# 代码自动生成，按约定使用即可：
-# from target.<database> import iter_<table1>, iter_<table2>
-from target.dltest import iter_books, iter_order
-
-bs = LoadSession(__name__)
+    """ 配置类，目前支持 DATABASE_URL 和 DATABASE_URLS 配置 """
+    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service"
 
 
-@bs.regist_for("dltest")            # data base name
-def load_books():
-    for book in iter_books(
-        5,                          # 最少为1，生成的记录条数：50
-        auto_incr_cols=['bid'],     # 声明自增字段, 框架将从DB的最大值开始自增
-        name = xxx()
-    ):
-        yield book
+@cs.regist_for("cpl_service")     # 声明这个session属于哪个DB
+def load_cpl_service_data():
+    # 自动生成的代码，按约定命名直接使用即可，
+    # from target.<dbname> import iter_<tbname>
+    from target.cpl_service import (
+        iter_cpl, iter_complex_lms_device, iter_cpl_location
+    )
 
-        for order in iter_order(
-            20,                         # 最少为1，生成的记录条数：10 x 50
-            auto_incr_cols=['oid'],
-            bid=book.bid,               # 覆盖默认生成的数据,以实现表数据关系关联
-            total = random.choice([10,20,30])
-        ):
-            yield order
-```
+    for cplx in iter_complex_lms_device(10):   # 指定固定量的模拟数据生成量
+        yield cplx       # 生成数据
 
-`app.py`
+        # 随机离散数据生成量，注意这里的数量乘以祖先级for的数量才是其生成量
+        for cpl in iter_cpl( fast_rand.randint(1, 10) ): 
+            yield cpl       # 生成数据
 
-```python
-from dataloader import DataLoader
+            for cpl_loc in iter_cpl_location(
+                fast_rand.randint(1, 10),
+                # auto_incr_cols=['自动增长的列名'],  # 指定自动增长的列以续增ID
+                
+                # 覆盖默认列的生成策略来关联数据关系:
+                complex_uuid=cplx.complex_uuid,
+                device_uuid=fast_rand.choice([
+                    cplx.device_uuid, fast_rand.randuuid()
+                ]),
+                cpl_uuid=cpl.uuid
+            ):
+                yield cpl_loc       # 生成数据
 
-from . import Config
-from .load_session import bs
 
-loader = DataLoader(__name__, Config)
+app = DataLoader(__name__, Config)    # 实例化应用
+app.register_session( cs )            # 注册session
 
-loader.register_session(bs)
 
 if __name__ == "__main__":
-    loader.load()
+    app.load()
 ```
 
-执行：
+## 三、待解决
 
-```python
-$ python app.py
-```
+目前问题列表：
 
-
-
-## 三、当前问题
-
-目前遇到的问题点：
-
-1. 非自增主键/唯一约束的冲突问题
-2. 随机生成的数据不是很快，需优化
+1. MySQL的适配尚未经过测试；
+2. 大批量数据的情况下尚未分批入库解决内存占用问题；
+3. 非自增主键/唯一约束的冲突尚未解决，需要使用者自定策略解决；
+4. 随机生成的数据不是很快，需优化：目前是提供了fast_rand（`from dataloader import fast_rand`）编程接口来提供`randint`、`randuuid`、`choice`等方法，未来将会替换内部实现以提供更好的性能。

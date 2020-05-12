@@ -89,11 +89,8 @@ if __name__ == "__main__":
 
 `$ make init-demo && make run-demo`
 
-## 待解决
-
-目前问题列表：
+## Issues
 
 1. MySQL的适配尚未经过测试；
-2. 大批量数据的情况下尚未分批入库解决内存占用问题；
 3. 非自增主键/唯一约束的冲突尚未解决，需要使用者自定策略解决；
 4. 随机生成的数据不是很快，需优化：目前是提供了fast_rand（`from dataloader import fast_rand`）编程接口来提供`randint`、`randuuid`、`choice`等方法，未来将会替换内部实现以提供更好的性能。

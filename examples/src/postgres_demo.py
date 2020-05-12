@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 # 1. Define configuration
 class Config(object):
-    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=3"
+    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=2"
 
 
 # 2. Define LoadSession

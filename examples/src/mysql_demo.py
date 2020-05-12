@@ -5,7 +5,7 @@ pvs = LoadSession(__name__)
 
 
 class Config(object):
-    DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"
+    DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service?connect_timeout=2"
 
 
 @pvs.regist_for("producer_view_service")

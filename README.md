@@ -6,25 +6,27 @@
 2. 自动反射表结构和生成模拟数据；
 3. 开发者只需开发LoadSession定义表关系即可。
 
+## DEMO
 
+代码库自带了两个Demo，分别对应MySQL和Postgres，请在Clone代码之后通过如下命令运行：
 
-* 运行DEMO（CPL-SERVICE)：`make init-demo && make run-demo`
+```shell
+$ make init-demo
+$ make run-mysql-demo
+$ make run-postgres-demo
+```
 
-## 引入
+## 安装
 
-（暂未支持pip方式）目前可手动打包：`$ make dist`
+这是个Private Repo，请自行替换`token` 和 `version`；version版本[请看这里](https://github.com/artsalliancemedia/producer2-stress-testing/releases)。
 
-> $ pip3 install git+https://<token\>@github.com/artsalliancemedia/producer2-stress-testing@<version\>#egg=dataloader
+```shell
+$ pip3 install git+https://<token>@github.com/artsalliancemedia/producer2-stress-testing.git@<version>#egg=dataloader
+```
 
 ##  配置
 
-至少需要在配置当中指定数据库的连接地址，目前支持的数据库类型为Postgres和MySQL：
-
-**MySQL**:    `mysql://{username}:{password}@{hostname}:{port}/{database}`
-
-**Postgres**: `postgresql://{username}:{password}@{hostname}:{port}/{database}`
-
-
+目前有两个配置项：
 
 `DATABASE_URL`：以配置类属性的形式存在，类型为字符串，值如上所示，为数据库连接schema；
 
@@ -32,9 +34,17 @@
 
 
 
+在配置当中指定数据库的连接地址，目前支持的数据库类型为Postgres和MySQL：
+
+**MySQL**:    `mysql://{username}:{password}@{hostname}:{port}/{database}`
+
+**Postgres**: `postgresql://{username}:{password}@{hostname}:{port}/{database}`
+
+
+
 ## 例子
 
-以cpl-service为例来写个小demo：
+以cpl-service为例来写个小demo：`app.py`
 
 ```python
 from dataloader import fast_rand
@@ -82,14 +92,13 @@ app.register_session( cs )            # 注册session
 
 
 if __name__ == "__main__":
-    app.load()
+    app.run()
 ```
 
-运行（`examples/src`）： `make init-demo`运行一次即可
+运行（`examples/src`）：
 
 ```shell
-$ make init-demo
-$ make run-demo
+$ python3 app.py
 ```
 
 ## Issues

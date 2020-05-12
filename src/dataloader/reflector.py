@@ -199,3 +199,4 @@ def reflect_targets(import_name, databases):
             logger.exception(
                 f"[Reflect] Failed to reflect target of database {dbcfg['database']}({dbcfg['scheme']}): {exc}"
             )
+            raise exc

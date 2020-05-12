@@ -5,17 +5,15 @@ from dataloader.error import ConfigError, UnsupportError
 
 logger = logging.getLogger(__name__)
 
-# count of recs in eatch iter chuck
-# 10w recs <==> 60M+
-ITER_CHUCK_SIZE = 10*10000
+# count of recs in eatch iter chunk, 10w recs <==> 60M+
+ITER_CHUNK_SIZE = 10 * 10000  # 10w
 
 # flush buff size, count of recs
-FLUSH_BUFF_SIZE = 5*10000
+FLUSH_BUFF_SIZE = 5 * 10000   # 5w
 
 
 class Configuration(object):
     def __init__(self, config_class):
-        # database related config
         self.dbconfigs = Parser().parse(config_class).get_dbconfigs()
 
 
@@ -23,8 +21,10 @@ class Parser(object):
     def __init__(self):
         self.dbconfigs = {}
 
+        logger.info(f"[CONF] ITER_CHUNK_SIZE: {ITER_CHUNK_SIZE}")
+        logger.info(f"[CONF] FLUSH_BUFF_SIZE: {FLUSH_BUFF_SIZE}")
+
     def parse(self, config_class):
-        ## 1. Parse database config
         if not any([
             hasattr(config_class, 'DATABASE_URL'),
             hasattr(config_class, 'DATABASE_URLS')
@@ -45,18 +45,18 @@ class Parser(object):
                 db_urls += conn_urls
             else:
                 raise ConfigError(
-                  f"Invalid config of 'DATABASE_URLS' {conn_urls}, should be list of str: [dburl1, dburl2]."
-                  )
+                    f"Invalid config of 'DATABASE_URLS' {conn_urls}, should be list of str: [dburl1, dburl2]."
+                )
             db_urls = list(set(db_urls))
 
-        logger.debug("[CONFIG] user configuration of database urls:\n %s", db_urls)
+        logger.debug("[CONF] user configuration of database urls:\n %s", db_urls)
 
         try:
             for db_url in db_urls:
                 ret = urlparse(db_url)
 
                 if ret.scheme.lower() not in (
-                  'mysql', 'mysql+mysqlconnector', 'postgresql'
+                    'mysql', 'mysql+mysqlconnector', 'postgresql'
                 ):
                     raise ConfigError(f"Currently we only support MySQL and PostgresSQL: {db_url}")
 
@@ -112,7 +112,7 @@ class Parser(object):
                 elif ret.scheme in ('mysql', 'mysql+mysqlconnector'):
                     self.dbconfigs[database]['tables_sql'] = """
                         SELECT table_name,
-                               CONCAT(table_schema, '.', table_name) AS full_table_name 
+                               CONCAT(table_schema, '.', table_name) AS full_table_name
                           FROM information_schema.tables
                          WHERE table_schema = '%s'
                     """ % database
@@ -136,9 +136,7 @@ class Parser(object):
             logger.exception(f"Can not parse {db_urls}.")
             raise ConfigError("Can not parse DATABASE_URL, invalid URL schema.")
 
-        ## 2. Other config parsing, Waiting for implementation ...
-
         return self
-        
+
     def get_dbconfigs(self):
         return self.dbconfigs

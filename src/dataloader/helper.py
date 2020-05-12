@@ -28,8 +28,8 @@ def time_stat(func):
         ret = func(*args, **kwargs)
         c = round(time.time() - s, 2)
         logger.info(
-            "[STAT %f] %s.%s cost %.2f secs.",
-            time.time(), func.__module__, func.__name__, c
+            "[STAT] %s.%s cost %.2f secs.",
+            func.__module__, func.__name__, c
         )
         return ret
     return wrapper
@@ -69,7 +69,7 @@ def get_root_path(import_name):
 def make_dir(root_path, sub_path, remove_if_exists=False):
     """ Create directory inclusively """
     full_path = os.path.join(root_path, sub_path)
-    
+
     posix_path = Path(full_path)
     try:
         if remove_if_exists:
@@ -132,7 +132,7 @@ class StringIteratorIO(io.TextIOBase):
     def readable(self):
         return True
 
-    def _read1(self, n = None):
+    def _read1(self, n=None):
         while not self._buff:
             try:
                 self._buff = next(self._iter)
@@ -142,7 +142,7 @@ class StringIteratorIO(io.TextIOBase):
         self._buff = self._buff[len(ret):]
         return ret
 
-    def read(self, n = None):
+    def read(self, n=None):
         line = []
         if n is None or n < 0:
             while True:

@@ -1,10 +1,15 @@
 import uuid
+import time
 import random
 import numpy as np
 import numpy.random
 import factory.fuzzy
 
 rng = np.random.default_rng()
+
+
+def random_int(size):
+    return int(time.time() % size) + 1
 
 
 class FuzzyUuid(factory.fuzzy.BaseFuzzyAttribute):
@@ -23,12 +28,12 @@ class FuzzyText(factory.fuzzy.BaseFuzzyAttribute):
     def __init__(self, as_str=False):
         super(FuzzyText, self).__init__()
         self._as_str = as_str
-        
+
     def fuzz(self):
         s, e = (97, 123)  # a ~ z
         seed = rng.integers(s, e, size=(1, 16), dtype=np.int8)
         return ''.join([chr(x) for x in seed[0]])
-    
+
 
 class FuzzyBoolean(factory.fuzzy.BaseFuzzyAttribute):
     def __init__(self, as_str=False):

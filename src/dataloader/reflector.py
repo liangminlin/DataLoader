@@ -2,7 +2,6 @@ from dataloader import db
 from dataloader import helper
 from dataloader import logging
 from dataloader.helper import FileUtil
-from dataloader.error import UnsupportError
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("from factory import fuzzy")
     fp.writeline("from dataloader import db")
     fp.writeline("from dataloader import factories")
-    
+
     fp.blankline()
     fp.writeline("NONECOL = '-*None*-'")
 
@@ -79,9 +78,9 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("class " + camel_tbname + "(object):")
     fp.writeline("__table_name__ = '" + tbname + "'", 4)
     fp.writeline("__ftable_name__ = '" + full_tbname + "'", 4)
-    
+
     fp.blankline()
-    
+
     #        def __init__(*args, **kwargs):
     line = "def __init__(self"
     for row in rows:
@@ -90,7 +89,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline(line, 4)
     for row in rows:
         fp.writeline("self." + row[0] + " = " + row[0], 8)
-    
+
     fp.blankline()
 
     #        def insert(cls):
@@ -157,23 +156,22 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     )
     fp.writeline("if not isinstance(count, int):", 4)
     fp.writeline("raise ValueError('count must be integer and gt. 0')", 8)
-    
+
     fp.blankline()
-    
+
     fp.writeline("count = 1 if count<1 else count", 4)
-    
+
     fp.writeline("for i, k in enumerate(auto_incr_cols):", 4)
     fp.writeline("if k == NONECOL:", 8)
     fp.writeline("auto_incr_cols.pop(i)", 12)
     fp.writeline("continue", 12)
     fp.writeline("kwargs[k] = _detect_maxv(k, '" + tbname + "')", 8)
-    
+
     fp.blankline()
 
     fp.writeline("for i in range(count):", 4)
     fp.writeline("for k in auto_incr_cols:", 8)
     fp.writeline("kwargs[k] += 1", 12)
-    # fp.writeline("yield _build(**kwargs)", 8)
     fp.writeline("yield " + camel_tbname + "Factory(**kwargs)", 8)
 
     fp.saveall()
@@ -183,7 +181,7 @@ def _reflect(root_path, dbcfg):
     """ reflect for one database """
     db_session = dbcfg['session']
     columns_sql = dbcfg['columns_sql']
-    
+
     tb_rows = db_session.execute(dbcfg['tables_sql']).fetchall()
 
     path = _create_module_base(root_path, dbcfg['database'], tb_rows)
@@ -194,13 +192,13 @@ def _reflect(root_path, dbcfg):
 
         col_sql = columns_sql % tb_row[0]
         col_rows = db_session.execute(col_sql).fetchall()
-        
+
         _create_table_object_and_factory(
             dbcfg, path, tb_row[0], tb_row[1], col_rows
         )
 
     return tables
-        
+
 
 def reflect_targets(import_name, databases):
     """ Called when init DataLoader """

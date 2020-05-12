@@ -1,10 +1,6 @@
-import uuid
-import time
-
 from functools import wraps
-from itertools import tee as iter_tee
 
-from dataloader import db
+from dataloader import loader
 from dataloader import logging
 from dataloader import reflector
 from dataloader.ctx import LoaderContext
@@ -16,7 +12,7 @@ logger = logging.getLogger(__name__)
 class DataLoader(object):
     """ This is the main core module of this framework:
 
-        loader = DataLoader(__name__, Config)
+        app = DataLoader(__name__, Config)
     """
     @time_stat
     def __init__(self, import_name, config_class):
@@ -36,9 +32,9 @@ class DataLoader(object):
         )
 
     @time_stat
-    def _flush_data(self, dbcfg, rec_iter):
+    def _flush_session_data(self, dbcfg, rec_iter):
         try:
-            db.flush_bulk_data(dbcfg, rec_iter)
+            loader.flush_data(dbcfg, rec_iter)
         except Exception as exc:
             logger.exception(exc)
 
@@ -48,18 +44,20 @@ class DataLoader(object):
         self._ctx.push_session(session)
 
     @time_stat
-    def load(self):
+    def run(self):
         """ This is the running entrance for the user. """
         @time_stat
         def _concurren_load(session):
             dbconfigs = self._ctx.config.dbconfigs
             for s_item in session.registed_sessions:
                 rec_iter = s_item['executor']()
-                self._flush_data(dbconfigs[s_item['database']], rec_iter)
-                
+                self._flush_session_data(dbconfigs[s_item['database']], rec_iter)
+
         while(self._ctx.has_session()):
             # 改成多进程方式
-            _concurren_load( self._ctx.pop_session() )
+            _concurren_load(
+                self._ctx.pop_session()
+            )
 
 
 class LoadSession(object):
@@ -80,14 +78,6 @@ class LoadSession(object):
     def __init__(self, import_name):
         """ import_name is not used at this moment """
         self.registed_sessions = []
-
-    def collect(self, item):
-        """ collect generated data """
-        collected = item.__ftable_name__, item.csvalue()
-
-        logger.info("collected: %s", collected)
-
-        return collected
 
     @time_stat
     def regist_for(self, dbname):

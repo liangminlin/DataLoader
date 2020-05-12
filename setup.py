@@ -9,10 +9,13 @@ setup(
     name="DataLoader",
     version=version,
     install_requires=[
-        # "psycopg2-binary>=2.8.5",
-        # "sqlalchemy >= 1.3.16",
-        # "pytz == 2020.1",
-        # "factory-boy == 2.12.0"
+        "psycopg2-binary>=2.8.5",
+        "sqlalchemy >= 1.3.16",
+        "pytz >= 2020.1",
+        "factory-boy >= 2.12.0",
+        "numpy >= 1.18.4",
+        "fastrand >= 1.2.4",
+        "mysql-connector >= 2.2.9"
     ],
     extras_require={
         "dotenv": ["python-dotenv"],

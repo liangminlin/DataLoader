@@ -85,12 +85,14 @@ if __name__ == "__main__":
     app.load()
 ```
 
-运行（`examples/src`）：
+运行（`examples/src`）： `make init-demo`运行一次即可
 
-`$ make init-demo && make run-demo`
+```shell
+$ make init-demo
+$ make run-demo
+```
 
 ## Issues
 
-1. MySQL的适配尚未经过测试；
-3. 非自增主键/唯一约束的冲突尚未解决，需要使用者自定策略解决；
-4. 随机生成的数据不是很快，需优化：目前是提供了fast_rand（`from dataloader import fast_rand`）编程接口来提供`randint`、`randuuid`、`choice`等方法，未来将会替换内部实现以提供更好的性能。
+1. 非自增主键/唯一约束的冲突尚未解决，需要使用者自定策略解决；
+4. 随机生成的数据不是很快，目前这里是耗时的瓶颈所在，存在可优化的空间；

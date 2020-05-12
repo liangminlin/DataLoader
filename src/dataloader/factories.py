@@ -25,13 +25,13 @@ class FuzzyUuid(factory.fuzzy.BaseFuzzyAttribute):
 
 
 class FuzzyText(factory.fuzzy.BaseFuzzyAttribute):
-    def __init__(self, as_str=False):
+    def __init__(self, sz=16):
         super(FuzzyText, self).__init__()
-        self._as_str = as_str
+        self.sz = 16 if sz <= 0 else sz
 
     def fuzz(self):
         s, e = (97, 123)  # a ~ z
-        seed = rng.integers(s, e, size=(1, 16), dtype=np.int8)
+        seed = rng.integers(s, e, size=(1, min(16, self.sz)), dtype=np.int8)
         return ''.join([chr(x) for x in seed[0]])
 
 

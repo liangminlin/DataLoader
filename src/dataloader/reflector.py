@@ -30,13 +30,13 @@ def _enum_choice(db_session, typid):
 
 def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fuzzer = {
+        # postgres
         'array': '[]',
-        'bytea': 'factories.FuzzyText()',
-        'varchar': 'factories.FuzzyText()',
-        'bool': 'factories.FuzzyBoolean()',
         'jsonb': '{}',
+        'bool': 'factories.FuzzyBoolean()',
         'timestamp': 'datetime.now(tz=UTC)',
-        'uuid': 'factories.FuzzyUuid()'
+        'uuid': 'factories.FuzzyUuid()',
+        # mysql
     }
     db_session = dbcfg['session']
     camel_tbname = helper.to_camel_case(tbname)
@@ -51,10 +51,10 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
 
     fp.blankline()
 
-    fp.writeline("import fastrand")
     fp.writeline("import factory")
     fp.writeline("from factory import fuzzy")
     fp.writeline("from dataloader import db")
+    fp.writeline("from dataloader import fast_rand")
     fp.writeline("from dataloader import factories")
 
     fp.blankline()
@@ -79,6 +79,15 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("__table_name__ = '" + tbname + "'", 4)
     fp.writeline("__ftable_name__ = '" + full_tbname + "'", 4)
 
+    line = "INSERT INTO " + full_tbname + "(" + rows[0][0]
+    for i in range(1, len(rows)):
+        line += ", " + rows[i][0]
+    line += ") VALUES (%" + ('d' if rows[0][1].startswith('int') else 's')
+    for i in range(1, len(rows)):
+        line += ", %" + ('d' if rows[i][1].startswith('int') else 's')
+    line += ")"
+    fp.writeline("__insert_sql__ = '" + line + "'", 4)
+
     fp.blankline()
 
     #        def __init__(*args, **kwargs):
@@ -92,32 +101,8 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
 
     fp.blankline()
 
-    #        def insert(cls):
-    fp.writeline("@classmethod", 4)
-    fp.writeline("def insert(cls):", 4)
-    line = "yield 'INSERT INTO " + full_tbname + "(" + rows[0][0]
-    for i in range(1, len(rows)):
-        line += ", " + rows[i][0]
-    line += ") VALUES '"
-    fp.writeline(line, 8)
-
-    fp.blankline()
-
-    #        def value(self):
-    fp.writeline("def value(self):", 4)
-    line = "yield '(%" + ('d' if rows[0][1].startswith('int') else 's')
-    for i in range(1, len(rows)):
-        line += ", %" + ('d' if rows[i][1].startswith('int') else 's')
-    line += ")' % (self." + rows[0][0]
-    for i in range(1, len(rows)):
-        line += ", self." + rows[i][0]
-    line += ")"
-    fp.writeline(line, 8)
-
-    fp.blankline()
-
-    #        def csvalue(self):
-    fp.writeline("def csvalue(self):", 4)
+    #        def tuple_value(self):
+    fp.writeline("def tuple_value(self):", 4)
     line = "return (self." + rows[0][0]
     for i in range(1, len(rows)):
         line += ", self." + rows[i][0]
@@ -133,13 +118,15 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.blankline()
     for row in rows:
         typ = row[1].replace('_', '')[:-2]
+        
         line = row[0] + " = "
         if typ == 'enum':
             line += "factory.fuzzy.FuzzyChoice" + _enum_choice(db_session, row[3])
-        elif typ.startswith('int'):
-            line += "fastrand.pcg32bounded(" + '9'.rjust(row[2], '9') + ")"
+        elif typ.startswith('int') or row[1] in ("tinyint", "bigint"):
+            line += "fast_rand.randint(1, " + '9'.rjust(row[2], '9') + ")"
         else:
-            line += fuzzer.get(typ, "factories.FuzzyText()")
+            sz = 16 if not row[2] else row[2]
+            line += fuzzer.get(typ, "factories.FuzzyText(" + str(sz) + ")")
         fp.writeline(line, 4)
 
     fp.blankline(2)

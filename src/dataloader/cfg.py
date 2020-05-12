@@ -1,15 +1,39 @@
 from urllib.parse import urlparse
 
 from dataloader import logging
+from dataloader.helper import (
+    clean_csv_value, StringIteratorIO
+)
 from dataloader.error import ConfigError, UnsupportError
 
 logger = logging.getLogger(__name__)
 
 # count of recs in eatch iter chunk
-ITER_CHUNK_SIZE = 10 * 10000  # 10w <==> 50~60M+
+ITER_CHUNK_SIZE =  10 * 10000  # 10w <==> 50~60M+
 
 # flush buff size, count of recs
 FLUSH_BUFF_SIZE = 5 * 10000   # 5w
+
+
+def _mysql_rec_filter(rec):
+    return rec.tuple_value()
+
+
+def _postgres_rec_filter(rec):
+    return '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
+
+
+def _mysql_flusher(cursor, full_tbname, sql, buff):
+    cursor.executemany(sql, buff)
+
+    return None
+
+
+def _postgres_flusher(cursor, full_tbname, sql, buff):
+    std_data_iter = StringIteratorIO(iter(buff))
+    cursor.copy_from(std_data_iter, full_tbname, sep='|')
+
+    return std_data_iter
 
 
 class Configuration(object):
@@ -55,10 +79,16 @@ class Parser(object):
             for db_url in db_urls:
                 ret = urlparse(db_url)
 
-                if ret.scheme.lower() not in (
-                    'mysql', 'mysql+mysqlconnector', 'postgresql'
-                ):
+                if ret.scheme.lower() not in ('mysql', 'postgresql'):
                     raise ConfigError(f"Currently we only support MySQL and PostgresSQL: {db_url}")
+
+                if ret.scheme.lower() == 'mysql':
+                    flusher = _mysql_flusher
+                    rec_filter = _mysql_rec_filter
+                    db_url = db_url[:5] + '+mysqlconnector' + db_url[5:]
+                else:  # postgresql
+                    flusher = _postgres_flusher
+                    rec_filter = _postgres_rec_filter
 
                 database = ret.path[1:]
                 if len(database) == 0:
@@ -85,7 +115,9 @@ class Parser(object):
                     'database': database,
                     'username': ret.username,
                     'password': ret.password,
-                    'hostname': ret.hostname
+                    'hostname': ret.hostname,
+                    'flusher': flusher,
+                    'rec_filter': rec_filter,
                 }
 
                 if ret.scheme == 'postgresql':
@@ -109,7 +141,7 @@ class Parser(object):
                            AND a.atttypid = t.oid
                       ORDER BY a.attnum ASC;
                     """
-                elif ret.scheme in ('mysql', 'mysql+mysqlconnector'):
+                elif ret.scheme == 'mysql':
                     self.dbconfigs[database]['tables_sql'] = """
                         SELECT table_name,
                                CONCAT(table_schema, '.', table_name) AS full_table_name

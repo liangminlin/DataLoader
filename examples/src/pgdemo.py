@@ -23,11 +23,11 @@ def load_cpl_service_data():
     )
 
     for cplx in iter_complex_lms_device(
-        1000 * 10000, complex_uuid=fast_rand.randuuid()
+        569, complex_uuid=fast_rand.randuuid()
     ):
         yield cplx
 
-        for cpl in iter_cpl_file(1):
+        for cpl in iter_cpl_file(3):
             yield cpl
 
 

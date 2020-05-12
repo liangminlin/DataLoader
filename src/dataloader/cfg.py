@@ -9,7 +9,7 @@ from dataloader.error import ConfigError, UnsupportError
 logger = logging.getLogger(__name__)
 
 # count of recs in eatch iter chunk
-ITER_CHUNK_SIZE =  10 * 10000  # 10w <==> 50~60M+
+ITER_CHUNK_SIZE = 10 * 10000  # 10w <==> 50~60M+
 
 # flush buff size, count of recs
 FLUSH_BUFF_SIZE = 5 * 10000   # 5w

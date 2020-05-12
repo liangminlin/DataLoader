@@ -1,8 +1,5 @@
-from mysql import connector
-
 from dataloader import logging
 from dataloader.cfg import ITER_CHUNK_SIZE, FLUSH_BUFF_SIZE
-from dataloader.error import UnsupportError
 from dataloader.helper import iter_chunks, time_stat
 
 logger = logging.getLogger(__name__)
@@ -17,7 +14,7 @@ def _flush_chunk_buff(db_session, flusher, rec_buff, leftover=False):
             continue
 
         key_for_del.append(full_tbname)
-        
+
         cursor = db_session.connection().connection.cursor()
 
         flushed = flusher(cursor, full_tbname, data["sql"], data["buff"])

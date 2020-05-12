@@ -118,7 +118,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.blankline()
     for row in rows:
         typ = row[1].replace('_', '')[:-2]
-        
+
         line = row[0] + " = "
         if typ == 'enum':
             line += "factory.fuzzy.FuzzyChoice" + _enum_choice(db_session, row[3])

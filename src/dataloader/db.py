@@ -1,4 +1,5 @@
 import psycopg2.extras
+from mysql import connector
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -34,12 +35,26 @@ def commit_session(session):
 
 
 def flush_bulk_data(dbcfg, full_tbname, buff_iter):
-    logger.info(list(buff_iter))
     src_dat_iter = StringIteratorIO(buff_iter)
     if dbcfg['scheme'] == 'postgresql':
         conn = psycopg2.connect(dbcfg['url'])
         cursor = conn.cursor()
         cursor.copy_from(src_dat_iter, full_tbname, sep='|')
+        conn.commit()
+        cursor.close()
+        conn.close()
+    elif dbcfg['scheme'] == 'mysql+mysqlconnector':
+        conn = connector.connect(
+            host=dbcfg['hostname'],
+            user=dbcfg['username'],
+            passwd=dbcfg['password'],
+            port=dbcfg['port'],
+            database=dbcfg['database']
+        )
+        cursor = conn.cursor()
+        
+        cursor.copy_from(src_dat_iter, full_tbname, sep='|')
+        
         conn.commit()
         cursor.close()
         conn.close()

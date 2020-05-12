@@ -20,7 +20,7 @@
 
 至少需要在配置当中指定数据库的连接地址，目前支持的数据库类型为Postgres和MySQL：
 
-**MySQL**: `mysql://{username}:{password}@{hostname}:{port}/{database}`
+**MySQL**:    `mysql+mysqlconnector://{username}:{password}@{hostname}:{port}/{database}`
 
 **Postgres**: `postgresql://{username}:{password}@{hostname}:{port}/{database}`
 

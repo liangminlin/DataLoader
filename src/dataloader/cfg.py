@@ -37,7 +37,9 @@ class Parser(object):
             if isinstance(conn_urls, list):
                 db_urls += conn_urls
             else:
-                raise ConfigError(f"Invalid config of 'DATABASE_URLS' {conn_urls}, should be list of str: [dburl1, dburl2].")
+                raise ConfigError(
+                  f"Invalid config of 'DATABASE_URLS' {conn_urls}, should be list of str: [dburl1, dburl2]."
+                  )
             db_urls = list(set(db_urls))
 
         logger.debug("[CONFIG] user configuration of database urls:\n %s", db_urls)
@@ -46,7 +48,7 @@ class Parser(object):
             for db_url in db_urls:
                 ret = urlparse(db_url)
 
-                if ret.scheme.lower() not in ('mysql', 'postgresql'):
+                if ret.scheme.lower() not in ('mysql+mysqlconnector', 'postgresql'):
                     raise ConfigError(f"Currently we only support MySQL and PostgresSQL: {db_url}")
 
                 database = ret.path[1:]
@@ -98,7 +100,7 @@ class Parser(object):
                            AND a.atttypid = t.oid
                       ORDER BY a.attnum ASC;
                     """
-                elif ret.scheme == 'mysql':
+                elif ret.scheme == 'mysql+mysqlconnector':
                     self.dbconfigs[database]['tables_sql'] = """
                         SELECT table_name,
                                CONCAT(table_schema, '.', table_name) AS full_table_name 

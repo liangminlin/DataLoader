@@ -16,5 +16,8 @@ unzip: dist
 install: unzip
 	examples/env/bin/python dist/DataLoader-*/setup.py install && rm -rf src/DataLoader.egg-info
 
-run-demo: install
-	clear && examples/env/bin/python examples/src/run.py
+run-msdemo: install
+	clear && examples/env/bin/python examples/src/msdemo.py
+
+run-pgdemo: install
+	clear && examples/env/bin/python examples/src/pgdemo.py

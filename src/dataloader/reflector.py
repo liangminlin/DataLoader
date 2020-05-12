@@ -31,11 +31,11 @@ def _enum_choice(db_session, typid):
 
 def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fuzzer = {
-        'array': '"[]"',
+        'array': '[]',
         'bytea': 'factories.FuzzyText()',
         'varchar': 'factories.FuzzyText()',
         'bool': 'factories.FuzzyBoolean()',
-        'jsonb': '"{}"',
+        'jsonb': '{}',
         'timestamp': 'datetime.now(tz=UTC)',
         'uuid': 'factories.FuzzyUuid()'
     }
@@ -228,11 +228,6 @@ def reflect_targets(import_name, databases):
     for dbname in databases.keys():
         dbcfg = databases[dbname]
         try:
-            if dbcfg['scheme'] not in ('mysql', 'postgresql'):
-                raise UnsupportError(
-                    f"The type {dbcfg['scheme']} of database is not supported at this moment."
-                )
-            
             dbcfg['session'] = db.init_session(dbcfg['url'])
             dbcfg['tables'] = _reflect(root_path, dbcfg)
         except Exception as exc:

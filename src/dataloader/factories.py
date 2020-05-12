@@ -8,7 +8,7 @@ rng = np.random.default_rng()
 
 
 class FuzzyUuid(factory.fuzzy.BaseFuzzyAttribute):
-    def __init__(self, as_str=False):
+    def __init__(self, as_str=True):
         super(FuzzyUuid, self).__init__()
         self._as_str = as_str
 

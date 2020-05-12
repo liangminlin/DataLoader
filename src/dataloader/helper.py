@@ -6,10 +6,16 @@ import shutil
 import pkgutil
 from pathlib import Path
 from functools import wraps
+from itertools import chain, islice
 
 from dataloader import logging
 
 logger = logging.getLogger(__name__)
+
+
+def iter_chunks(iterator, size):
+    for first in iterator:
+        yield chain([first], islice(iterator, size - 1))
 
 
 def time_stat(func):

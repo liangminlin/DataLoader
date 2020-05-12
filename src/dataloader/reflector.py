@@ -96,7 +96,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     #        def insert(cls):
     fp.writeline("@classmethod", 4)
     fp.writeline("def insert(cls):", 4)
-    line = "return 'INSERT INTO " + full_tbname + "(" + rows[0][0]
+    line = "yield 'INSERT INTO " + full_tbname + "(" + rows[0][0]
     for i in range(1, len(rows)):
         line += ", " + rows[i][0]
     line += ") VALUES '"
@@ -106,7 +106,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
 
     #        def value(self):
     fp.writeline("def value(self):", 4)
-    line = "return '(%" + ('d' if rows[0][1].startswith('int') else 's')
+    line = "yield '(%" + ('d' if rows[0][1].startswith('int') else 's')
     for i in range(1, len(rows)):
         line += ", %" + ('d' if rows[i][1].startswith('int') else 's')
     line += ")' % (self." + rows[0][0]
@@ -147,19 +147,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
 
     #        def _build(**kwargs):
     fp.writeline("def _build(**kwargs):")
-    fp.writeline("f = " + camel_tbname + "Factory(**kwargs)", 4)
-    fp.blankline()
-    fp.writeline("return f", 4)
-
-    fp.blankline(2)
-
-    #        def _build_sql(insert, **kwargs):
-    fp.writeline("def _build_sql(insert, **kwargs):")
-    fp.writeline("f = " + camel_tbname + "Factory(**kwargs)", 4)
-    fp.writeline("if insert:", 4)
-    fp.writeline("return " + camel_tbname + ".insert() + f.value()", 8)
-    fp.blankline()
-    fp.writeline("return f.value()", 4)
+    fp.writeline("yield " + camel_tbname + "Factory(**kwargs)", 4)
 
     fp.blankline(2)
 
@@ -172,29 +160,21 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     
     fp.blankline()
     
-    fp.writeline("count = 2 if count<1 else count+1", 4)
-    fp.writeline("for i in range(1, count):", 4)
-    fp.writeline("for k in auto_incr_cols:", 8)
-    fp.writeline("if k == NONECOL:", 12)
-    fp.writeline("continue", 16)
-    fp.writeline("kwargs[k] = i + _detect_maxv(k, '" + tbname + "')", 12)
+    fp.writeline("count = 1 if count<1 else count", 4)
+    
+    fp.writeline("for i, k in enumerate(auto_incr_cols):", 4)
+    fp.writeline("if k == NONECOL:", 8)
+    fp.writeline("auto_incr_cols.pop(i)", 12)
+    fp.writeline("continue", 12)
+    fp.writeline("kwargs[k] = _detect_maxv(k, '" + tbname + "')", 8)
     
     fp.blankline()
-    
-    fp.writeline("yield _build(**kwargs)", 8)
 
-    fp.blankline(2)
-
-    # def iter_<tbname>_v2():
-    fp.writeline("def iter_" + tbname + "_v2(count, **kwargs):")
-    fp.writeline("if not isinstance(count, int):", 4)
-    fp.writeline("raise ValueError('count must be integer and gt. 0')", 8)
-    fp.blankline()
-    fp.writeline("yield _build_sql(True, **kwargs)", 4)
-    fp.blankline()
-    fp.writeline("count = 1 if count < 1 else count", 4)
     fp.writeline("for i in range(count):", 4)
-    fp.writeline("yield _build_sql(False, **kwargs)" , 8)
+    fp.writeline("for k in auto_incr_cols:", 8)
+    fp.writeline("kwargs[k] += 1", 12)
+    # fp.writeline("yield _build(**kwargs)", 8)
+    fp.writeline("yield " + camel_tbname + "Factory(**kwargs)", 8)
 
     fp.saveall()
 

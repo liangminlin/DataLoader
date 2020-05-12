@@ -1,12 +1,14 @@
 import uuid
-from itertools import tee
+import time
+
 from functools import wraps
+from itertools import tee as iter_tee
 
 from dataloader import db
 from dataloader import logging
 from dataloader import reflector
-from dataloader.helper import time_stat
 from dataloader.ctx import LoaderContext
+from dataloader.helper import time_stat
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +36,9 @@ class DataLoader(object):
         )
 
     @time_stat
-    def _flush_data(self, dbname, full_tbname, buff_iter):
-        """ Flush datas into table 'full_tbname' of database 'dbname' """
+    def _flush_data(self, dbcfg, rec_iter):
         try:
-            db.flush_bulk_data(
-                self._ctx.config.dbconfigs[dbname], full_tbname, buff_iter
-            )
+            db.flush_bulk_data(dbcfg, rec_iter)
         except Exception as exc:
             logger.exception(exc)
 
@@ -53,23 +52,11 @@ class DataLoader(object):
         """ This is the running entrance for the user. """
         @time_stat
         def _concurren_load(session):
-            from dataloader.helper import clean_csv_value
-
             dbconfigs = self._ctx.config.dbconfigs
             for s_item in session.registed_sessions:
-                dbname = s_item['database']
-                tables = dbconfigs[dbname]['tables']
-
                 rec_iter = s_item['executor']()
-
-                rec_iters = tee(rec_iter, len(tables))
-                for ft, tbl_rec_iter in zip(tables, rec_iters):
-                    batch_iter = (
-                        ('|'.join(map(clean_csv_value, x.csvalue())) + "\n") 
-                        for x in tbl_rec_iter if x.__ftable_name__==ft
-                    )
-                    self._flush_data(dbname, ft, batch_iter)
-
+                self._flush_data(dbconfigs[s_item['database']], rec_iter)
+                
         while(self._ctx.has_session()):
             # 改成多进程方式
             _concurren_load( self._ctx.pop_session() )

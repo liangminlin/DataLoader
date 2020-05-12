@@ -5,6 +5,13 @@ from dataloader.error import ConfigError, UnsupportError
 
 logger = logging.getLogger(__name__)
 
+# count of recs in eatch iter chuck
+# 10w recs <==> 60M+
+ITER_CHUCK_SIZE = 10*10000
+
+# flush buff size, count of recs
+FLUSH_BUFF_SIZE = 5*10000
+
 
 class Configuration(object):
     def __init__(self, config_class):
@@ -48,7 +55,9 @@ class Parser(object):
             for db_url in db_urls:
                 ret = urlparse(db_url)
 
-                if ret.scheme.lower() not in ('mysql+mysqlconnector', 'postgresql'):
+                if ret.scheme.lower() not in (
+                  'mysql', 'mysql+mysqlconnector', 'postgresql'
+                ):
                     raise ConfigError(f"Currently we only support MySQL and PostgresSQL: {db_url}")
 
                 database = ret.path[1:]
@@ -100,7 +109,7 @@ class Parser(object):
                            AND a.atttypid = t.oid
                       ORDER BY a.attnum ASC;
                     """
-                elif ret.scheme == 'mysql+mysqlconnector':
+                elif ret.scheme in ('mysql', 'mysql+mysqlconnector'):
                     self.dbconfigs[database]['tables_sql'] = """
                         SELECT table_name,
                                CONCAT(table_schema, '.', table_name) AS full_table_name 

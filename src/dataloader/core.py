@@ -54,7 +54,7 @@ class DataLoader(object):
                 self._flush_session_data(dbconfigs[s_item['database']], rec_iter)
 
         while(self._ctx.has_session()):
-            # 改成多进程方式
+            # TODO: 改成多进程/线程方式
             _concurren_load(
                 self._ctx.pop_session()
             )
@@ -72,7 +72,7 @@ class LoadSession(object):
         def load_some_data():
             # from target.<dbname> import iter_<tbname>
             # for item in iter_<tbname>(<total>):
-            #     ls.collect(item)
+            #     yield item
     """
     @time_stat
     def __init__(self, import_name):

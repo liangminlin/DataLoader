@@ -73,7 +73,7 @@ class Parser(object):
                 )
             db_urls = list(set(db_urls))
 
-        logger.debug("[CONF] user configuration of database urls:\n %s", db_urls)
+        logger.info("[CONF] user configuration of database urls:\n %s", db_urls)
 
         try:
             for db_url in db_urls:
@@ -164,6 +164,12 @@ class Parser(object):
                     raise UnsupportError(
                         f"Scheme of (ret.scheme) is not support yet at this moment."
                     )
+
+                tables_sql = self.dbconfigs[database]['tables_sql']
+                columns_sql = self.dbconfigs[database]['columns_sql']
+
+                logger.info(f"[CONF] {ret.scheme} tables_sql: {tables_sql}")
+                logger.info(f"[CONF] {ret.scheme} columns_sql: {columns_sql}")
         except:
             logger.exception(f"Can not parse {db_urls}.")
             raise ConfigError("Can not parse DATABASE_URL, invalid URL schema.")

@@ -1,16 +1,15 @@
 from dataloader import logging
-from dataloader.cfg import ITER_CHUNK_SIZE, FLUSH_BUFF_SIZE
 from dataloader.helper import iter_chunks, time_stat
 
 logger = logging.getLogger(__name__)
 
 
 @time_stat
-def _flush_chunk_buff(db_session, flusher, rec_buff, leftover=False):
+def _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size, leftover=False):
     key_for_del = []
 
     for full_tbname, data in rec_buff.items():
-        if not leftover and len(data["buff"]) < FLUSH_BUFF_SIZE:
+        if not leftover and len(data["buff"]) < flush_buff_size:
             continue
 
         key_for_del.append(full_tbname)
@@ -36,6 +35,8 @@ def flush_data(dbcfg, rec_iter):
     db_session = dbcfg['session']
     flusher = dbcfg['flusher']
     rec_filter = dbcfg['rec_filter']
+    flush_buff_size = dbcfg['flush_buff_size']
+    iter_chunk_size = dbcfg['iter_chunk_size']
 
     @time_stat
     def _iter_chunk(rec_buff, iter_chunk):
@@ -48,12 +49,12 @@ def flush_data(dbcfg, rec_iter):
                 rec_filter(rec)
             )
 
-    for iter_chunk in iter_chunks(rec_iter, ITER_CHUNK_SIZE):
+    for iter_chunk in iter_chunks(rec_iter, iter_chunk_size):
         _iter_chunk(rec_buff, iter_chunk)
 
         logger.info("[FLSH] Generated chunk data, flushing ...")
 
-        _flush_chunk_buff(db_session, flusher, rec_buff)
-    _flush_chunk_buff(db_session, flusher, rec_buff, True)
+        _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size)
+    _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size, True)
 
     logger.info("[FLSH] =-=-= Done. =-=-=")

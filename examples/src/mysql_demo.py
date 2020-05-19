@@ -6,6 +6,12 @@ pvs = LoadSession(__name__)
 
 class Config(object):
     DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service?connect_timeout=2"
+    
+    # 多少条记录做一次IO提交到DB
+    FLUSH_BUFF_SIZE = 5 * 10000
+
+    # 每个批次生成多少条记录, 这个值影响占用内存的大小
+    ITER_CHUNK_SIZE = 10 * 10000
 
 
 @pvs.regist_for("producer_view_service")

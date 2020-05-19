@@ -29,15 +29,7 @@ def _enum_choice(db_session, typid):
 
 
 def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
-    fuzzer = {
-        # postgres
-        'array': '[]',
-        'jsonb': '{}',
-        'bool': 'factories.FuzzyBoolean()',
-        'timestamp': 'datetime.now(tz=UTC)',
-        'uuid': 'factories.FuzzyUuid()',
-        # mysql
-    }
+    fuzzer = dbcfg['data_types']
     db_session = dbcfg['session']
     camel_tbname = helper.to_camel_case(tbname)
 
@@ -79,15 +71,6 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("__table_name__ = '" + tbname + "'", 4)
     fp.writeline("__ftable_name__ = '" + full_tbname + "'", 4)
 
-    # line = "INSERT INTO " + full_tbname + "(" + rows[0][0]
-    # for i in range(1, len(rows)):
-    #     line += ", " + rows[i][0]
-    # line += ") VALUES (%" + ('d' if rows[0][1].startswith('int') else 's')
-    # for i in range(1, len(rows)):
-    #     line += ", %" + ('d' if rows[i][1].startswith('int') else 's')
-    # line += ")"
-    # fp.writeline("__insert_sql__ = '" + line + "'", 4)
-
     line = "INSERT INTO " + full_tbname + "(" + rows[0][0]
     for i in range(1, len(rows)):
         line += ", " + rows[i][0]
@@ -126,16 +109,9 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("model = " + camel_tbname, 8)
     fp.blankline()
     for row in rows:
-        typ = row[1].replace('_', '')[:-2]
-
-        line = row[0] + " = "
-        if typ == 'enum':
-            line += "factory.fuzzy.FuzzyChoice" + _enum_choice(db_session, row[3])
-        elif typ.startswith('int') or row[1] in ("int", "number", "tinyint", "bigint"):
-            line += "fast_rand.randint(1, " + '9'.rjust(row[2], '9') + ")"
-        else:
-            sz = 16 if not row[2] else row[2]
-            line += fuzzer.get(typ, "factories.FuzzyText(" + str(sz) + ")")
+        line = row[0] + " = " + fuzzer.get(
+            row[1], "None"
+        )
         fp.writeline(line, 4)
 
     fp.blankline(2)
@@ -181,6 +157,9 @@ def _reflect(root_path, dbcfg):
         tables.add(tb_row[1])
 
         col_sql = columns_sql % tb_row[0]
+
+        logger.info(col_sql)
+        
         col_rows = db_session.execute(col_sql).fetchall()
 
         _create_table_object_and_factory(

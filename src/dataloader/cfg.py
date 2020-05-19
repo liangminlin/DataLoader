@@ -8,12 +8,6 @@ from dataloader.error import ConfigError, UnsupportError
 
 logger = logging.getLogger(__name__)
 
-# count of recs in eatch iter chunk
-ITER_CHUNK_SIZE = 10 * 10000  # 10w <==> 50~60M+
-
-# flush buff size, count of recs
-FLUSH_BUFF_SIZE = 5 * 10000   # 5w
-
 
 def _mysql_rec_filter(rec):
     return rec.tuple_value()
@@ -45,9 +39,6 @@ class Parser(object):
     def __init__(self):
         self.dbconfigs = {}
 
-        logger.info(f"[CONF] ITER_CHUNK_SIZE: {ITER_CHUNK_SIZE}")
-        logger.info(f"[CONF] FLUSH_BUFF_SIZE: {FLUSH_BUFF_SIZE}")
-
     def parse(self, config_class):
         if not any([
             hasattr(config_class, 'DATABASE_URL'),
@@ -74,6 +65,15 @@ class Parser(object):
             db_urls = list(set(db_urls))
 
         logger.info("[CONF] user configuration of database urls:\n %s", db_urls)
+
+        # flush buff size, count of recs, 5w
+        flush_buff_size = getattr(config_class, 'FLUSH_BUFF_SIZE', 5 * 10000)
+
+        # count of recs in eatch iter chunk, 10w <==> 50~60M+
+        iter_chunk_size = getattr(config_class, 'ITER_CHUNK_SIZE', 10 * 10000)
+
+        logger.info(f"[CONF] ITER_CHUNK_SIZE: {iter_chunk_size}")
+        logger.info(f"[CONF] FLUSH_BUFF_SIZE: {flush_buff_size}")
 
         try:
             for db_url in db_urls:
@@ -118,6 +118,11 @@ class Parser(object):
                     'hostname': ret.hostname,
                     'flusher': flusher,
                     'rec_filter': rec_filter,
+                    'tables_sql': None,
+                    'columns_sql': None,
+                    'data_types': {},
+                    'flush_buff_size': flush_buff_size,
+                    'iter_chunk_size': iter_chunk_size
                 }
 
                 if ret.scheme == 'postgresql':
@@ -126,11 +131,19 @@ class Parser(object):
                                CONCAT(schemaname, '.', tablename) AS full_table_name
                           FROM pg_tables
                          WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-                           AND tablename NOT IN ('alembic_version');
+                           AND tablename NOT IN (
+                            'alembic_version', 'flyway_schema_history');
                     """
                     self.dbconfigs[database]['columns_sql'] = """
                         SELECT a.attname AS field,
-                               t.typinput AS type,
+                               CASE WHEN ( t.typname LIKE '%%int%%'
+                                   OR t.typname LIKE '%%number%%'
+                                   OR t.typname LIKE '%%float%%'
+                                   OR t.typname LIKE '%%double%%'
+                               ) THEN 'number' 
+                               WHEN t.typname LIKE '%%char%%' THEN
+                                   'varchar'
+                               ELSE t.typname END AS type,
                                a.attlen AS length,
                                a.atttypid AS type_id,
                                a.attnotnull AS not_null
@@ -141,12 +154,20 @@ class Parser(object):
                            AND a.atttypid = t.oid
                       ORDER BY a.attnum ASC;
                     """
+                    self.dbconfigs[database]['data_types'] = {
+                        'number': 'fast_rand.randint(0, 10)',
+                        'varchar': 'factories.FuzzyText(5)',
+                        'bytea': 'factories.FuzzyText(5)',
+                        'uuid': 'fast_rand.randuuid()',
+                        'bool': 'True', 'jsonb': '{}', 'array': '[]'
+                    }
                 elif ret.scheme == 'mysql':
                     self.dbconfigs[database]['tables_sql'] = """
                         SELECT table_name,
                                CONCAT(table_schema, '.', table_name) AS full_table_name
                           FROM information_schema.tables
                          WHERE table_schema = '%s'
+                           AND table_name NOT IN ('alembic_version', 'flyway_schema_history');
                     """ % database
                     self.dbconfigs[database]['columns_sql'] = """
                         SELECT c.column_name AS field,
@@ -160,6 +181,37 @@ class Parser(object):
                          WHERE c.table_schema = '""" + database + """'
                            AND c.table_name = '%s'
                     """
+                    self.dbconfigs[database]['data_types'] = {
+                        # Integer Types
+                        'tinyint': '1', # 'fast_rand.randint(0, 255)',
+                        'smallint': 'fast_rand.randint(0, 255)',
+                        'mediumint': 'fast_rand.randint(0, 65536)',
+                        'int': 'fast_rand.randint(0, 65536)',
+                        'integer': 'fast_rand.randint(0, 65536)',
+                        'bigint': 'fast_rand.randint(0, 65536)',
+                        'float': 'fast_rand.randint(0, 65536)',
+                        'double': 'fast_rand.randint(0, 65536)',
+                        'decimal': 'fast_rand.randint(0, 65536)',
+                        # Date Types
+                        'date': '"2020-05-01"',
+                        'time': '"12:00:00"',
+                        'year': '"2020"',
+                        'datetime': '"2020-05-01 12:00:00"',
+                        'timestamp': '"2020-05-01 12:00:00"',
+                        # String Types
+                        'char': 'factories.FuzzyText(1)',
+                        'varchar': 'factories.FuzzyText(5)',
+                        'tinyblob': 'factories.FuzzyText()',
+                        'tinytext': 'factories.FuzzyText()',
+                        'blob': 'factories.FuzzyText()',
+                        'text': 'factories.FuzzyText()',
+                        'mediumblob': 'factories.FuzzyText()',
+                        'mediumtext': 'factories.FuzzyText()',
+                        'longblob': 'factories.FuzzyText()',
+                        'longtext': 'factories.FuzzyText()',
+                        # Object Types
+                        'json': '{}', 'array': '[]'
+                    }
                 else:
                     raise UnsupportError(
                         f"Scheme of (ret.scheme) is not support yet at this moment."

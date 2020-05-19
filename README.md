@@ -54,8 +54,13 @@ cs = LoadSession(__name__)   # 定义Load Session
 
 
 class Config(object):
-    """ 配置类，目前支持 DATABASE_URL 和 DATABASE_URLS 配置 """
+    """ 配置类，目前支持如下三个配置项 """
     DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service"
+    # 多少条记录做一次IO提交到DB，默认 5W
+    FLUSH_BUFF_SIZE = 5 * 10000
+
+    # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认10W
+    ITER_CHUNK_SIZE = 10 * 10000
 
 
 @cs.regist_for("cpl_service")     # 声明这个session属于哪个DB

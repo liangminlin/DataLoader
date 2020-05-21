@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 class Config(object):
     DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=2"
 
-    # 多少条记录做一次IO提交到DB, 建议值: 10w
-    FLUSH_BUFF_SIZE = 10 * 10000
+    # 多少条记录做一次IO提交到DB, 默认值: 10w
+    FLUSH_BUFF_SIZE = 5 * 10000
 
-    # 每个批次生成多少条记录, 这个值影响占用内存的大小，建议值: 20w
-    ITER_CHUNK_SIZE = 20 * 10000
+    # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认值: 10w
+    ITER_CHUNK_SIZE = 10 * 10000
 
 
 # 2. Define LoadSession

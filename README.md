@@ -26,11 +26,20 @@ $ pip3 install git+https://<token>@github.com/artsalliancemedia/producer2-stress
 
 ##  配置
 
-目前有两个配置项：
+目前有如下配置项：
 
 `DATABASE_URL`：以配置类属性的形式存在，类型为字符串，值如上所示，为数据库连接schema；
 
 `DATABASE_URLS`：以配置类属性的形式存在，类型为字符串列表，列表值如上所示，为数据库连接schema。
+
+
+
+`FLUSH_BUFF_SIZE`：多少条记录做一次IO提交到DB, 默认值: 5w
+
+`ITER_CHUNK_SIZE`：每个批次生成多少条记录, 这个值影响占用内存的大小，默认值: 10w
+
+* Postgres的数据在入库之前存在内存中，如果是Postgres，则可以调整大一点
+* MySQL的数据在入库之前会先刷到磁盘的CSV文件中，因此每次加载相比PG要多2倍I/O
 
 
 
@@ -71,14 +80,14 @@ def load_cpl_service_data():
         iter_cpl, iter_complex_lms_device, iter_cpl_location
     )
 
-    for cplx in iter_complex_lms_device(10):   # 指定固定量的模拟数据生成量
+    for idx, cplx in iter_complex_lms_device(10):   # 指定固定量的模拟数据生成量
         yield cplx       # 生成数据
 
         # 随机离散数据生成量，注意这里的数量乘以祖先级for的数量才是其生成量
-        for cpl in iter_cpl( fast_rand.randint(1, 10) ): 
+        for idx, cpl in iter_cpl( fast_rand.randint(1, 10) ): 
             yield cpl       # 生成数据
 
-            for cpl_loc in iter_cpl_location(
+            for idx, cpl_loc in iter_cpl_location(
                 fast_rand.randint(1, 10),
                 # auto_incr_cols=['自动增长的列名'],  # 指定自动增长的列以续增ID
                 
@@ -108,5 +117,4 @@ $ python3 app.py
 
 ## Issues
 
-1. 非自增主键/唯一约束的冲突尚未解决，需要使用者自定策略解决；
-4. 随机生成的数据不是很快，目前这里是耗时的瓶颈所在，存在可优化的空间；
+1. 随机生成的数据不是很快，目前这里是耗时的瓶颈所在，存在可优化的空间；

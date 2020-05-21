@@ -46,7 +46,6 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("import factory")
     fp.writeline("from factory import fuzzy")
     fp.writeline("from dataloader import db")
-    fp.writeline("from dataloader import fast_rand")
     fp.writeline("from dataloader import factories")
 
     fp.blankline()
@@ -71,14 +70,10 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline("__table_name__ = '" + tbname + "'", 4)
     fp.writeline("__ftable_name__ = '" + full_tbname + "'", 4)
 
-    line = "INSERT INTO " + full_tbname + "(" + rows[0][0]
-    for i in range(1, len(rows)):
-        line += ", " + rows[i][0]
-    line += ") VALUES (%s"
-    for i in range(1, len(rows)):
-        line += ", %s"
-    line += ")"
-    fp.writeline("__insert_sql__ = '" + line + "'", 4)
+    line = "\"\"\"LOAD DATA LOCAL INFILE '%s' "
+    line += "INTO TABLE " + full_tbname + " FIELDS TERMINATED BY '|'"
+    line += " LINES TERMINATED BY '\n'\"\"\""
+    fp.writeline("__load_mysql__ = " + line, 4)
 
     fp.blankline()
 
@@ -120,6 +115,7 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.writeline(
         "def iter_" + tbname + "(count, auto_incr_cols=[NONECOL], **kwargs):"
     )
+    fp.writeline("_idx = -1", 4)
     fp.writeline("if not isinstance(count, int):", 4)
     fp.writeline("raise ValueError('count must be integer and gt. 0')", 8)
 
@@ -136,9 +132,10 @@ def _create_table_object_and_factory(dbcfg, path, tbname, full_tbname, rows):
     fp.blankline()
 
     fp.writeline("for i in range(count):", 4)
+    fp.writeline("_idx += 1", 8)
     fp.writeline("for k in auto_incr_cols:", 8)
     fp.writeline("kwargs[k] += 1", 12)
-    fp.writeline("yield " + camel_tbname + "Factory(**kwargs)", 8)
+    fp.writeline("yield _idx, " + camel_tbname + "Factory(**kwargs)", 8)
 
     fp.saveall()
 
@@ -157,8 +154,6 @@ def _reflect(root_path, dbcfg):
         tables.add(tb_row[1])
 
         col_sql = columns_sql % tb_row[0]
-
-        logger.info(col_sql)
         
         col_rows = db_session.execute(col_sql).fetchall()
 

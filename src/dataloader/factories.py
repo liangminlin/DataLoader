@@ -1,6 +1,7 @@
 import uuid
 import time
 import random
+import fastrand
 import numpy as np
 import numpy.random
 import factory.fuzzy
@@ -8,8 +9,20 @@ import factory.fuzzy
 rng = np.random.default_rng()
 
 
-def random_int(size):
-    return int(time.time() % size) + 1
+def randint(start, end):
+    """ Faster version of random.randint """
+    v = fastrand.pcg32bounded(end)
+    if v < start:
+        v += start
+    if v > end:
+        return (v+start)/2
+    return v
+
+
+# def randuuid(idx, seed_uuid):
+#     uuidstr = str(seed_uuid)
+#     uuid_prefix = uuidstr[:-10]
+#     return (uuid_prefix + str(idx)).rjust(uuidsz, '0')
 
 
 class FuzzyUuid(factory.fuzzy.BaseFuzzyAttribute):
@@ -42,25 +55,3 @@ class FuzzyBoolean(factory.fuzzy.BaseFuzzyAttribute):
 
     def fuzz(self):
         return random.choice([True, False])
-
-
-class FuzzyMultiChoices(factory.fuzzy.BaseFuzzyAttribute):
-    def __init__(self, sample, number=None, **kwargs):
-        super(FuzzyMultiChoices, self).__init__()
-        self._sample = sample
-        self._k = number
-        self._sample_len = len(sample)
-
-    def fuzz(self):
-        return set(random.sample(
-            self._sample,
-            k=self._k or random_int(self._sample_len)
-        ))
-
-
-class FuzzyFasterChoice(FuzzyMultiChoices):
-    def __init__(self, sample, number=1, **kwargs):
-        super(FuzzyMultiChoices, self).__init__()
-        self._sample = sample
-        self._k = number
-        self._sample_len = len(sample)

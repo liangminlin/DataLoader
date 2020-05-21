@@ -15,7 +15,7 @@ setup(
         "factory-boy >= 2.12.0",
         "numpy >= 1.18.4",
         "fastrand >= 1.2.4",
-        "mysql-connector >= 2.2.9"
+        "pymysql >= 0.9.3"
     ],
     extras_require={
         "dotenv": ["python-dotenv"],

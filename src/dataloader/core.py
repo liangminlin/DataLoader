@@ -16,6 +16,10 @@ class DataLoader(object):
     """
     @time_stat
     def __init__(self, import_name, config_class):
+        logging.init_logger(import_name)
+
+        logger.info("================== START ==================")
+
         self._ctx = LoaderContext(
             import_name, config_class
         )
@@ -43,7 +47,6 @@ class DataLoader(object):
         """ Register session into loader context """
         self._ctx.push_session(session)
 
-    @time_stat
     def run(self):
         """ This is the running entrance for the user. """
         @time_stat
@@ -58,6 +61,8 @@ class DataLoader(object):
             _concurren_load(
                 self._ctx.pop_session()
             )
+        logger.info("=================== END ===================")
+        logger.info("\n\n\n\n\n")
 
 
 class LoadSession(object):
@@ -71,7 +76,7 @@ class LoadSession(object):
         @ls.regist_for("<dbname>")      # We call this as a session.
         def load_some_data():
             # from target.<dbname> import iter_<tbname>
-            # for item in iter_<tbname>(<total>):
+            # for idx, item in iter_<tbname>(<total>):
             #     yield item
     """
     @time_stat

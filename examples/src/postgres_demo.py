@@ -1,4 +1,5 @@
-from dataloader import fast_rand, logging
+import uuid
+from dataloader import factories, logging
 from dataloader import DataLoader, LoadSession
 
 
@@ -9,11 +10,11 @@ logger = logging.getLogger(__name__)
 class Config(object):
     DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=2"
 
-    # 多少条记录做一次IO提交到DB
-    FLUSH_BUFF_SIZE = 5 * 10000
+    # 多少条记录做一次IO提交到DB, 建议值: 10w
+    FLUSH_BUFF_SIZE = 10 * 10000
 
-    # 每个批次生成多少条记录, 这个值影响占用内存的大小
-    ITER_CHUNK_SIZE = 10 * 10000
+    # 每个批次生成多少条记录, 这个值影响占用内存的大小，建议值: 20w
+    ITER_CHUNK_SIZE = 20 * 10000
 
 
 # 2. Define LoadSession
@@ -28,12 +29,12 @@ def load_cpl_service_data():
         iter_complex_lms_device, iter_cpl_file
     )
 
-    for cplx in iter_complex_lms_device(
-        569, complex_uuid=fast_rand.randuuid()
+    for idx, cplx in iter_complex_lms_device(
+        10*10000, complex_uuid=factories.FuzzyUuid()
     ):
         yield cplx
 
-        for cpl in iter_cpl_file(3):
+        for idx, cpl in iter_cpl_file(2):
             yield cpl
 
 

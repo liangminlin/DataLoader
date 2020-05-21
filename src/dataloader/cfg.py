@@ -1,3 +1,5 @@
+import os
+from sqlalchemy import text
 from urllib.parse import urlparse
 
 from dataloader import logging
@@ -9,23 +11,39 @@ from dataloader.error import ConfigError, UnsupportError
 logger = logging.getLogger(__name__)
 
 
-def _mysql_rec_filter(rec):
-    return rec.tuple_value()
+def _mysql_rec_filter(ref, rec):
+    ref["buff"].write(
+        '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
+    )
 
 
-def _postgres_rec_filter(rec):
-    return '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
+def _postgres_rec_filter(ref, rec):
+    ref["buff"].append(
+        '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
+    )
 
 
-def _mysql_flusher(cursor, full_tbname, sql, buff):
-    cursor.executemany(sql, buff)
+def _mysql_flusher(db_session, full_tbname, sql, buff):
+    try:
+        logger.info(f'[FLSH] buff file {buff.name}')
+
+        db_session.execute(text(sql % buff.name))
+
+        os.remove(buff.name)
+    except Exception as exc:
+        logger.error(exc)
 
     return None
 
 
-def _postgres_flusher(cursor, full_tbname, sql, buff):
-    std_data_iter = StringIteratorIO(iter(buff))
-    cursor.copy_from(std_data_iter, full_tbname, sep='|')
+def _postgres_flusher(db_session, full_tbname, sql, buff):
+    try:
+        cursor = db_session.connection().connection.cursor()
+        std_data_iter = StringIteratorIO(iter(buff))
+        cursor.copy_from(std_data_iter, full_tbname, sep='|')
+        cursor.close()
+    except Exception as exc:
+        logger.error(exc)
 
     return std_data_iter
 
@@ -64,7 +82,7 @@ class Parser(object):
                 )
             db_urls = list(set(db_urls))
 
-        logger.info("[CONF] user configuration of database urls:\n %s", db_urls)
+        logger.info("[CONF] User configuration of database urls:\n %s", db_urls)
 
         # flush buff size, count of recs, 5w
         flush_buff_size = getattr(config_class, 'FLUSH_BUFF_SIZE', 5 * 10000)
@@ -85,7 +103,9 @@ class Parser(object):
                 if ret.scheme.lower() == 'mysql':
                     flusher = _mysql_flusher
                     rec_filter = _mysql_rec_filter
-                    db_url = db_url[:5] + '+mysqlconnector' + db_url[5:]
+                    db_url = db_url[:5] + '+pymysql' + db_url[5:]
+                    db_url += '?' if '?' not in db_url else '&'
+                    db_url += 'local_infile=1'
                 else:  # postgresql
                     flusher = _postgres_flusher
                     rec_filter = _postgres_rec_filter
@@ -155,10 +175,10 @@ class Parser(object):
                       ORDER BY a.attnum ASC;
                     """
                     self.dbconfigs[database]['data_types'] = {
-                        'number': 'fast_rand.randint(0, 10)',
+                        'number': 'factories.randint(0, 10)',
                         'varchar': 'factories.FuzzyText(5)',
                         'bytea': 'factories.FuzzyText(5)',
-                        'uuid': 'fast_rand.randuuid()',
+                        'uuid': 'factories.FuzzyUuid()',
                         'bool': 'True', 'jsonb': '{}', 'array': '[]'
                     }
                 elif ret.scheme == 'mysql':
@@ -183,15 +203,15 @@ class Parser(object):
                     """
                     self.dbconfigs[database]['data_types'] = {
                         # Integer Types
-                        'tinyint': '1', # 'fast_rand.randint(0, 255)',
-                        'smallint': 'fast_rand.randint(0, 255)',
-                        'mediumint': 'fast_rand.randint(0, 65536)',
-                        'int': 'fast_rand.randint(0, 65536)',
-                        'integer': 'fast_rand.randint(0, 65536)',
-                        'bigint': 'fast_rand.randint(0, 65536)',
-                        'float': 'fast_rand.randint(0, 65536)',
-                        'double': 'fast_rand.randint(0, 65536)',
-                        'decimal': 'fast_rand.randint(0, 65536)',
+                        'tinyint': '1', # 'factories.randint(0, 255)',
+                        'smallint': 'factories.randint(0, 255)',
+                        'mediumint': 'factories.randint(0, 65536)',
+                        'int': 'factories.randint(0, 65536)',
+                        'integer': 'factories.randint(0, 65536)',
+                        'bigint': 'factories.randint(0, 65536)',
+                        'float': 'factories.randint(0, 65536)',
+                        'double': 'factories.randint(0, 65536)',
+                        'decimal': 'factories.randint(0, 65536)',
                         # Date Types
                         'date': '"2020-05-01"',
                         'time': '"12:00:00"',
@@ -219,9 +239,6 @@ class Parser(object):
 
                 tables_sql = self.dbconfigs[database]['tables_sql']
                 columns_sql = self.dbconfigs[database]['columns_sql']
-
-                logger.info(f"[CONF] {ret.scheme} tables_sql: {tables_sql}")
-                logger.info(f"[CONF] {ret.scheme} columns_sql: {columns_sql}")
         except:
             logger.exception(f"Can not parse {db_urls}.")
             raise ConfigError("Can not parse DATABASE_URL, invalid URL schema.")

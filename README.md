@@ -84,6 +84,7 @@ pvs = LoadSession(__name__)   # 定义Load Session
 class Config(object):
     """ 配置类，目前支持如下三个配置项 """
     DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"
+    
     # 多少条记录做一次IO提交到DB，默认 5W
     FLUSH_BUFF_SIZE = 5 * 10000
 
@@ -103,14 +104,15 @@ def load_cpl_service_data():
         iter_cpl_data, iter_complex_data, iter_cpl_complex_mapping, CplData
     )
 
-    # 使用retain_pkey声明数据生成后主键字段保留待用
+    # 使用retaining声明数据生成后主键字段保留待用, 注意, 只保留了主键字段
     for cpl in iter_cpl_data(100, retaining=True):
         yield cpl
         
     for cplx in iter_complex_data(100):
         yield cplx
         
-        # 使用incache来指定数据从指定表的指定字段获取
+        # 使用incache来指定数据从指定表的指定字段获取, 现在的策略是按下标顺序获取值：
+        # 例如在这个例子当中已生成100条CPL，但是这里只会从取前面的2条(这里数量是2）
         for mp in iter_cpl_complex_mapping(
             2, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
         ):
@@ -120,6 +122,9 @@ def load_cpl_service_data():
     free(CplData)
 
 app = DataLoader(__name__, Config)    # 实例化应用
+
+# 当有多个session时可选的简便方式：
+# app.register_sessions([s1, s2, ...])
 app.register_session(pvs)             # 注册session
 
 

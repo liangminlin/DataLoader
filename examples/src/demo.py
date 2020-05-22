@@ -35,11 +35,11 @@ def load_pvs_data():
         ):
             yield cdm
 
-            # for clm in iter_cpl_locations_mapping(
-            #     10, device_uuid=cdm.device_uuid,
-            #     complex_uuid=cdm.complex_uuid, cpl_uuid=incache(CplData, "uuid")
-            # ):
-            #     yield clm
+            for clm in iter_cpl_locations_mapping(
+                10, device_uuid=cdm.device_uuid,
+                complex_uuid=cdm.complex_uuid, cpl_uuid=incache(CplData, "uuid")
+            ):
+                yield clm
 
     free(CplData)
 

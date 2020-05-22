@@ -127,8 +127,7 @@ def _create_table_object_and_factory(
 
         typ = row[5].replace('_', '')[:-2]
         if typ == 'enum':
-            line += ("factory.fuzzy.FuzzyChoice"
-            + _enum_choice(db_session, row[3]))
+            line += ("factory.fuzzy.FuzzyChoice" + _enum_choice(db_session, row[3]))
         elif typ == 'array':
             line += fuzzer.get("array", "None")
         else:

@@ -1,5 +1,4 @@
 import logging
-from dataloader import factories
 from dataloader import logging as log
 from dataloader.helper import incache, free
 from dataloader import DataLoader, LoadSession
@@ -11,12 +10,13 @@ logger = log.getLogger(__name__)
 class Config(object):
     """ 配置类，目前支持如下三个配置项 """
     DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=2"
+
     # 多少条记录做一次IO提交到DB，默认 5W
     FLUSH_BUFF_SIZE = 5 * 10000
 
     # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认10W
     ITER_CHUNK_SIZE = 10 * 10000
-    
+
     LOG_LEVEL = logging.INFO
     SAVE_LOG_TO_FILE = True
     LOG_FILE_LOCATION = "/tmp"

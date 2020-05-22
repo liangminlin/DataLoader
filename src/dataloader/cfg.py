@@ -35,6 +35,8 @@ def _postgres_rec_filter(ref, rec):
 
 def _mysql_flusher(db_session, full_tbname, sql, buff):
     try:
+        buff.close()  # MUST close(flush) FIRST!
+
         logger.info(f'[FLSH] buff file {buff.name}')
 
         db_session.execute(text(sql % buff.name))
@@ -57,7 +59,6 @@ def _postgres_flusher(db_session, full_tbname, sql, buff):
         cursor = db_session.connection().connection.cursor()
         std_data_iter = StringIteratorIO(iter(buff))
         cursor.copy_from(std_data_iter, full_tbname, sep='|')
-        cursor.close()
         db_session.commit()
     except Exception as exc:
         db_session.rollback()

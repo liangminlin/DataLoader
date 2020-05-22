@@ -16,7 +16,9 @@ class DataLoader(object):
     """
     @time_stat
     def __init__(self, import_name, config_class):
-        logging.init_logger(import_name)
+        logging.init_logger(
+            import_name, config_class
+        )
 
         logger.info("================== START ==================")
 
@@ -53,8 +55,10 @@ class DataLoader(object):
         def _concurren_load(session):
             dbconfigs = self._ctx.config.dbconfigs
             for s_item in session.registed_sessions:
-                rec_iter = s_item['executor']()
-                self._flush_session_data(dbconfigs[s_item['database']], rec_iter)
+                rec_iter = s_item['executor']()  # collect data
+                self._flush_session_data(
+                    dbconfigs[s_item['database']], rec_iter
+                )
 
         while(self._ctx.has_session()):
             # TODO: 改成多进程/线程方式

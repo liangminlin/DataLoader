@@ -11,16 +11,26 @@ from dataloader.error import ConfigError, UnsupportError
 logger = logging.getLogger(__name__)
 
 
+def _csv_value(rec):
+    if rec.__class__.__retain_pkey__:
+        if rec.__class__.__table_name__ not in rec.__class__.__dbcfg_ref__['retain_cache']:
+            rec.__class__.__dbcfg_ref__['retain_cache'][
+                rec.__class__.__table_name__
+            ] = []
+
+        rec.__class__.__dbcfg_ref__['retain_cache'][
+            rec.__class__.__table_name__
+        ].append(rec.pkey_value_map())
+
+    return '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
+
+
 def _mysql_rec_filter(ref, rec):
-    ref["buff"].write(
-        '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
-    )
+    ref["buff"].write(_csv_value(rec))
 
 
 def _postgres_rec_filter(ref, rec):
-    ref["buff"].append(
-        '|'.join(map(clean_csv_value, rec.tuple_value())) + "\n"
-    )
+    ref["buff"].append(_csv_value(rec))
 
 
 def _mysql_flusher(db_session, full_tbname, sql, buff):
@@ -29,9 +39,15 @@ def _mysql_flusher(db_session, full_tbname, sql, buff):
 
         db_session.execute(text(sql % buff.name))
 
-        os.remove(buff.name)
+        db_session.commit()
     except Exception as exc:
+        db_session.rollback()
         logger.error(exc)
+    finally:
+        try:
+            os.remove(buff.name)
+        except Exception as exc:
+            logger.error(exc)
 
     return None
 
@@ -42,7 +58,9 @@ def _postgres_flusher(db_session, full_tbname, sql, buff):
         std_data_iter = StringIteratorIO(iter(buff))
         cursor.copy_from(std_data_iter, full_tbname, sep='|')
         cursor.close()
+        db_session.commit()
     except Exception as exc:
+        db_session.rollback()
         logger.error(exc)
 
     return std_data_iter
@@ -141,6 +159,7 @@ class Parser(object):
                     'tables_sql': None,
                     'columns_sql': None,
                     'data_types': {},
+                    'retain_cache': {},
                     'flush_buff_size': flush_buff_size,
                     'iter_chunk_size': iter_chunk_size
                 }
@@ -160,19 +179,32 @@ class Parser(object):
                                    OR t.typname LIKE '%%number%%'
                                    OR t.typname LIKE '%%float%%'
                                    OR t.typname LIKE '%%double%%'
-                               ) THEN 'number' 
+                               ) THEN 'number'
                                WHEN t.typname LIKE '%%char%%' THEN
                                    'varchar'
                                ELSE t.typname END AS type,
                                a.attlen AS length,
                                a.atttypid AS type_id,
-                               a.attnotnull AS not_null
+                               a.attnotnull AS not_null,
+                               t.typinput
                           FROM pg_class c, pg_attribute a, pg_type t
                          WHERE c.relname = '%s'
                            AND a.attnum > 0
                            AND a.attrelid = c.oid
                            AND a.atttypid = t.oid
                       ORDER BY a.attnum ASC;
+                    """
+                    self.dbconfigs[database]['pkey_sql'] = """
+                        SELECT kcu.column_name
+                          FROM information_schema.table_constraints AS tco
+                          JOIN information_schema.key_column_usage kcu
+                            ON kcu.constraint_name = tco.constraint_name
+                           AND kcu.constraint_schema = tco.constraint_schema
+                           AND kcu.constraint_name = tco.constraint_name
+                         WHERE tco.constraint_type = 'PRIMARY KEY'
+                           AND kcu.table_schema = 'public'
+                           AND kcu.table_name = '%s'
+                      ORDER BY kcu.ordinal_position;
                     """
                     self.dbconfigs[database]['data_types'] = {
                         'number': 'factories.randint(0, 10)',
@@ -196,14 +228,27 @@ class Parser(object):
                                -1 AS type_id,
                                CASE WHEN c.is_nullable = 'NO' THEN
                                    't' ELSE 'f'
-                               END AS not_null
+                               END AS not_null,
+                               'null' AS typinput
                           FROM information_schema.columns c
                          WHERE c.table_schema = '""" + database + """'
                            AND c.table_name = '%s'
                     """
+                    self.dbconfigs[database]['pkey_sql'] = """
+                        SELECT sta.column_name
+                          FROM information_schema.TABLES AS tab
+                    INNER JOIN information_schema.statistics AS sta
+                            ON sta.table_schema = tab.table_schema
+                           AND sta.table_name = tab.table_name
+                           AND sta.index_name = 'primary'
+                         WHERE tab.table_schema = '""" + database + """'
+                           AND tab.table_name = '%s'
+                           AND tab.table_type = 'BASE TABLE'
+                       ORDER BY tab.table_name;
+                    """
                     self.dbconfigs[database]['data_types'] = {
                         # Integer Types
-                        'tinyint': '1', # 'factories.randint(0, 255)',
+                        'tinyint': '1',  # 'factories.randint(0, 255)',
                         'smallint': 'factories.randint(0, 255)',
                         'mediumint': 'factories.randint(0, 65536)',
                         'int': 'factories.randint(0, 65536)',
@@ -236,9 +281,6 @@ class Parser(object):
                     raise UnsupportError(
                         f"Scheme of (ret.scheme) is not support yet at this moment."
                     )
-
-                tables_sql = self.dbconfigs[database]['tables_sql']
-                columns_sql = self.dbconfigs[database]['columns_sql']
         except:
             logger.exception(f"Can not parse {db_urls}.")
             raise ConfigError("Can not parse DATABASE_URL, invalid URL schema.")

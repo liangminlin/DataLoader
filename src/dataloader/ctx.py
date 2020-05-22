@@ -8,7 +8,6 @@ class LoaderContext(object):
     """ The loader context """
     def __init__(self, import_name, config_class):
         self.load_sessions = []
-
         self.import_name = import_name
         self.config = Configuration(config_class)
 

@@ -30,7 +30,15 @@ $ pip3 install git+https://<token>@github.com/artsalliancemedia/producer2-stress
 
 `DATABASE_URL`：以配置类属性的形式存在，类型为字符串，值如上所示，为数据库连接schema；
 
-`DATABASE_URLS`：以配置类属性的形式存在，类型为字符串列表，列表值如上所示，为数据库连接schema。
+`DATABASE_URLS`：以配置类属性的形式存在，类型为字符串列表，列表值如上所示，为数据库连接schema；
+
+`LOG_LEVEL`：日志打印级别，https://docs.python.org/3/library/logging.html#levels
+
+* 取值：logging.INFO, logging.DEBUG, logging.NOTSET,logging.CRITICAL, logging.ERROR, logging.WARNING
+
+`SAVE_LOG_TO_FILE`：True / False，是否保存运行日志到文件，默认False；
+
+`LOG_FILE_LOCATION`：自定日志保存的绝对路径，不填则默认保存在项目文件夹下；
 
 
 
@@ -53,56 +61,66 @@ $ pip3 install git+https://<token>@github.com/artsalliancemedia/producer2-stress
 
 ## 例子
 
-以cpl-service为例来写个小demo：`app.py`
+以cpl-service为例来写个小demo：
+
+```shell
+$ mkdir demo
+$ virtualenv --py=python3 env
+$ env/bin/pip install git+https://<token>@github.com/artsalliancemedia/producer2-stress-testing.git@<version>#egg=dataloader
+$ touch app.py
+## write codes to app.py ......
+```
+
+`app.py`：
 
 ```python
-from dataloader import fast_rand
+import logging
+from dataloader.helper import incache, free
 from dataloader import DataLoader, LoadSession
 
-cs = LoadSession(__name__)   # 定义Load Session
+pvs = LoadSession(__name__)   # 定义Load Session
 
 
 class Config(object):
     """ 配置类，目前支持如下三个配置项 """
-    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service"
+    DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"
     # 多少条记录做一次IO提交到DB，默认 5W
     FLUSH_BUFF_SIZE = 5 * 10000
 
     # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认10W
     ITER_CHUNK_SIZE = 10 * 10000
+    
+    LOG_LEVEL = logging.INFO
+    SAVE_LOG_TO_FILE = True
+    # LOG_FILE_LOCATION = "/tmp"
 
 
-@cs.regist_for("cpl_service")     # 声明这个session属于哪个DB
+@pvs.regist_for("producer_view_service")     # 声明这个session属于哪个DB
 def load_cpl_service_data():
     # 自动生成的代码，按约定命名直接使用即可，
     # from target.<dbname> import iter_<tbname>
-    from target.cpl_service import (
-        iter_cpl, iter_complex_lms_device, iter_cpl_location
+    from target.producer_view_service import (
+        iter_cpl_data, iter_complex_data, iter_cpl_complex_mapping, CplData
     )
 
-    for idx, cplx in iter_complex_lms_device(10):   # 指定固定量的模拟数据生成量
-        yield cplx       # 生成数据
-
-        # 随机离散数据生成量，注意这里的数量乘以祖先级for的数量才是其生成量
-        for idx, cpl in iter_cpl( fast_rand.randint(1, 10) ): 
-            yield cpl       # 生成数据
-
-            for idx, cpl_loc in iter_cpl_location(
-                fast_rand.randint(1, 10),
-                # auto_incr_cols=['自动增长的列名'],  # 指定自动增长的列以续增ID
-                
-                # 覆盖默认列的生成策略来关联数据关系:
-                complex_uuid=cplx.complex_uuid,
-                device_uuid=fast_rand.choice([
-                    cplx.device_uuid, fast_rand.randuuid()
-                ]),
-                cpl_uuid=cpl.uuid
-            ):
-                yield cpl_loc       # 生成数据
-
+    # 使用retain_pkey声明数据生成后主键字段保留待用
+    for cpl in iter_cpl_data(100, retain_pkey=True):
+        yield cpl
+        
+    for cplx in iter_complex_data(100):
+        yield cplx
+        
+        # 使用incache来指定数据从指定表的指定字段获取
+        for mp in iter_cpl_complex_mapping(
+            2, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
+        ):
+            yield mp
+     
+    # 不再使用之后释放掉保留的数据
+    free(CplData)
 
 app = DataLoader(__name__, Config)    # 实例化应用
-app.register_session( cs )            # 注册session
+app.register_session(pvs)             # 注册session
 
 
 if __name__ == "__main__":
@@ -112,9 +130,5 @@ if __name__ == "__main__":
 运行（`examples/src`）：
 
 ```shell
-$ python3 app.py
+$ env/bin/python app.py
 ```
-
-## Issues
-
-1. 随机生成的数据不是很快，目前这里是耗时的瓶颈所在，存在可优化的空间；

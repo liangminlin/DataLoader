@@ -101,6 +101,35 @@ def clean_csv_value(value):
     return str(value).replace('\n', '\\n')
 
 
+def free(tbClazz):
+    cache = tbClazz.__dbcfg_ref__['retain_cache'].pop(
+        tbClazz.__table_name__
+    )
+    del cache
+
+
+def incache(tbClazz, columnStr):
+    return Cache(tbClazz, columnStr)
+
+
+class Cache(object):
+    def __init__(self, tbClazz, columnStr):
+        self.columnStr = columnStr
+        self.cache = tbClazz.__dbcfg_ref__['retain_cache'][
+            tbClazz.__table_name__
+        ]
+
+    def value(self, i):
+        try:
+            c = self.cache[i % len(self.cache)]
+        except:  # IndexError:
+            logger.warning(
+                f"[CACH] There is no cache posision {i}"
+            )
+            return None
+        return c[self.columnStr]
+
+
 class FileUtil(object):
     """ A file util for writing source code files """
     def __init__(self, filename):

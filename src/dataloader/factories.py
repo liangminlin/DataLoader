@@ -1,5 +1,4 @@
 import uuid
-import time
 import random
 import fastrand
 import numpy as np
@@ -15,14 +14,8 @@ def randint(start, end):
     if v < start:
         v += start
     if v > end:
-        return (v+start)/2
+        return (v + start) / 2
     return v
-
-
-# def randuuid(idx, seed_uuid):
-#     uuidstr = str(seed_uuid)
-#     uuid_prefix = uuidstr[:-10]
-#     return (uuid_prefix + str(idx)).rjust(uuidsz, '0')
 
 
 class FuzzyUuid(factory.fuzzy.BaseFuzzyAttribute):

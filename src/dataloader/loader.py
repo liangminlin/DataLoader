@@ -18,8 +18,6 @@ def _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size, leftover=F
 
         flushed = flusher(db_session, full_tbname, data["sql"], data["buff"])
 
-        db_session.commit()
-
         del flushed
 
     for k in key_for_del:
@@ -42,6 +40,7 @@ def flush_data(dbcfg, rec_iter):
     def _iter_chunk(rec_buff, iter_chunk):
         for rec in iter_chunk:
             if rec.__ftable_name__ not in rec_buff:
+                rec.__class__.__dbcfg_ref__ = dbcfg
                 rec_buff[rec.__ftable_name__] = {
                     "bfsz": 0, "buff": [], "sql": rec.__load_mysql__
                 }
@@ -51,8 +50,8 @@ def flush_data(dbcfg, rec_iter):
                     )
                     rec_buff[rec.__ftable_name__]["buff"] = f
 
-            rec_filter(rec_buff[rec.__ftable_name__], rec)
             rec_buff[rec.__ftable_name__]["bfsz"] += 1
+            rec_filter(rec_buff[rec.__ftable_name__], rec)
 
     for iter_chunk in iter_chunks(rec_iter, iter_chunk_size):
         logger.info("[GENR] Generating chunk data, please wait ......")

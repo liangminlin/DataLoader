@@ -1,4 +1,5 @@
 import logging
+from dataloader import factories
 from dataloader.helper import incache, free
 from dataloader import DataLoader, LoadSession
 
@@ -11,14 +12,14 @@ class Config(object):
     DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"
 
     # 多少条记录做一次IO提交到DB，默认 5W
-    FLUSH_BUFF_SIZE = 5 * 10000
+    FLUSH_BUFF_SIZE = 10 * 10000
 
     # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认10W
-    ITER_CHUNK_SIZE = 10 * 10000
+    ITER_CHUNK_SIZE = 50 * 10000
 
     LOG_LEVEL = logging.INFO
     SAVE_LOG_TO_FILE = True
-    LOG_FILE_LOCATION = "/tmp"
+    # LOG_FILE_LOCATION = "/tmp"
 
 
 @pvs.regist_for("producer_view_service")     # 声明这个session属于哪个DB
@@ -30,15 +31,15 @@ def load_cpl_service_data():
     )
 
     # 使用retaining声明数据生成后主键字段保留待用
-    for cpl in iter_cpl_data(20, retaining=True):
+    for cpl in iter_cpl_data(10 * 10000, retaining=True, uuid=factories.FuzzyUuid()):
         yield cpl
 
-    for cplx in iter_complex_data(100):
+    for cplx in iter_complex_data(10, uuid=factories.FuzzyUuid()):
         yield cplx
 
         # 使用incache来指定数据从指定表的指定字段获取
         for ccm in iter_cpl_complex_mapping(
-            20, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
+            10 * 10000, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
         ):
             yield ccm
 

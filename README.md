@@ -12,6 +12,7 @@
 
 ```shell
 $ make init-demo
+$ make run-demo
 $ make run-mysql-demo
 $ make run-postgres-demo
 ```
@@ -82,7 +83,7 @@ pvs = LoadSession(__name__)   # 定义Load Session
 
 
 class Config(object):
-    """ 配置类，目前支持如下三个配置项 """
+    """ 配置类，目前支持如下几个配置项 """
     # 另一个可选的配置是DATABASE_URLS，支持同时操作多个DB，详见examples/demo.py
     # DATABASE_URLS = ["mysql://xxxx", "postgres://xxx"]
     DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"

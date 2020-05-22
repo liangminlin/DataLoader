@@ -104,7 +104,7 @@ def load_cpl_service_data():
     )
 
     # 使用retain_pkey声明数据生成后主键字段保留待用
-    for cpl in iter_cpl_data(100, retain_pkey=True):
+    for cpl in iter_cpl_data(100, retaining=True):
         yield cpl
         
     for cplx in iter_complex_data(100):

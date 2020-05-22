@@ -123,18 +123,23 @@ def _create_table_object_and_factory(
     fp.writeline("model = " + camel_tbname, 8)
     fp.blankline()
     for row in rows:
+        line = row[0] + " = "
+
         typ = row[5].replace('_', '')[:-2]
         if typ == 'enum':
-            line = "factory.fuzzy.FuzzyChoice" + _enum_choice(db_session, row[3])
+            line += ("factory.fuzzy.FuzzyChoice"
+            + _enum_choice(db_session, row[3]))
+        elif typ == 'array':
+            line += fuzzer.get("array", "None")
         else:
-            line = row[0] + " = " + fuzzer.get(row[1], "None")
+            line += fuzzer.get(row[1], "None")
         fp.writeline(line, 4)
 
     fp.blankline(2)
 
     # def iter_<tbname>():
     fp.writeline(
-        "def iter_" + tbname + "(count, retain_pkey=False, auto_incr_cols=[NONECOL], **kwargs):"
+        "def iter_" + tbname + "(count, retaining=False, auto_incr_cols=[NONECOL], **kwargs):"
     )
     fp.writeline("if not isinstance(count, int):", 4)
     fp.writeline("raise ValueError('count must be integer and gt. 0')", 8)
@@ -166,7 +171,7 @@ def _create_table_object_and_factory(
 
     fp.blankline()
 
-    fp.writeline("yield " + camel_tbname + "Factory(retain_pkey=retain_pkey, **kwgs)", 8)
+    fp.writeline("yield " + camel_tbname + "Factory(retain_pkey=retaining, **kwgs)", 8)
 
     fp.saveall()
 

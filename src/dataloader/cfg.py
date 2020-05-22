@@ -211,7 +211,12 @@ class Parser(object):
                         'varchar': 'factories.FuzzyText(5)',
                         'bytea': 'factories.FuzzyText(5)',
                         'uuid': 'factories.FuzzyUuid()',
-                        'bool': 'True', 'jsonb': '{}', 'array': '[]'
+                        'date': '"2020-05-01"',
+                        'time': '"12:00:00"',
+                        'year': '"2020"',
+                        'datetime': '"2020-05-01 12:00:00"',
+                        'timestamp': '"2020-05-01 12:00:00"',
+                        'bool': 'True', 'jsonb': '{}', 'array': '{}'
                     }
                 elif ret.scheme == 'mysql':
                     self.dbconfigs[database]['tables_sql'] = """

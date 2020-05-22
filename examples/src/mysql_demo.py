@@ -30,8 +30,8 @@ def load_cpl_service_data():
         iter_cpl_data, iter_complex_data, iter_cpl_complex_mapping, CplData
     )
 
-    # 使用retain_pkey声明数据生成后主键字段保留待用
-    for cpl in iter_cpl_data(20, retain_pkey=True):
+    # 使用retaining声明数据生成后主键字段保留待用
+    for cpl in iter_cpl_data(20, retaining=True):
         yield cpl
 
     for cplx in iter_complex_data(100):

@@ -16,6 +16,9 @@ unzip: dist
 install: unzip
 	examples/env/bin/python dist/DataLoader-*/setup.py install && rm -rf src/DataLoader.egg-info
 
+run-demo: install
+	clear && examples/env/bin/python examples/src/demo.py
+
 run-mysql-demo: install
 	clear && examples/env/bin/python examples/src/mysql_demo.py
 

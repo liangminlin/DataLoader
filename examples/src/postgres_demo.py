@@ -36,7 +36,7 @@ def load_cpl_service_data():
         iter_complex_group_association
     )
 
-    for cplx in iter_complex_lms_device(10, retain_pkey=True):
+    for cplx in iter_complex_lms_device(10, retaining=True):
         yield cplx
 
     for grp in iter_complex_group_association(

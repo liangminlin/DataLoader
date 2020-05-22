@@ -45,6 +45,14 @@ class DataLoader(object):
             logger.exception(exc)
 
     @time_stat
+    def register_sessions(self, sessions):
+        """ Register sessions into loader context """
+        if not isinstance(sessions, list):
+            raise ValueError("sessions should be list")
+        for session in sessions:
+            self._ctx.push_session(session)
+
+    @time_stat
     def register_session(self, session):
         """ Register session into loader context """
         self._ctx.push_session(session)
@@ -56,6 +64,13 @@ class DataLoader(object):
             dbconfigs = self._ctx.config.dbconfigs
             for s_item in session.registed_sessions:
                 rec_iter = s_item['executor']()  # collect data
+
+                logger.info(
+                    ">>> >>> >>>"
+                    f"START SESSION OF DB {s_item['database']}"
+                    "<<< <<< <<<"
+                )
+
                 self._flush_session_data(
                     dbconfigs[s_item['database']], rec_iter
                 )
@@ -65,8 +80,7 @@ class DataLoader(object):
             _concurren_load(
                 self._ctx.pop_session()
             )
-        logger.info("=================== END ===================")
-        logger.info("\n\n\n\n\n")
+        logger.info("=================== END ===================\n\n\n\n\n")
 
 
 class LoadSession(object):

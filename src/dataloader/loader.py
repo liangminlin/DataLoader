@@ -62,5 +62,3 @@ def flush_data(dbcfg, rec_iter):
 
         _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size)
     _flush_chunk_buff(db_session, flusher, rec_buff, flush_buff_size, True)
-
-    logger.info("[FLSH] =-=-= Done. =-=-=")

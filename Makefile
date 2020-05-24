@@ -16,11 +16,17 @@ unzip: dist
 install: unzip
 	examples/env/bin/python dist/DataLoader-*/setup.py install && rm -rf src/DataLoader.egg-info
 
-run-demo: install
-	clear && examples/env/bin/python examples/src/demo.py
-
 run-mysql-demo: install
 	clear && examples/env/bin/python examples/src/mysql_demo.py
 
 run-postgres-demo: install
 	clear && examples/env/bin/python examples/src/postgres_demo.py
+
+docker-build:
+	docker build -t dataloader:python3.6 .
+
+docker-build-demo: docker-build
+	cd examples/src && docker build -t dataloader:demo . && cd ../../
+
+run-demo: docker-build-demo
+	docker run dataloader:demo

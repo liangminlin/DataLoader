@@ -10,7 +10,7 @@ logger = log.getLogger(__name__)
 
 class Config(object):
     """ 配置类，目前支持如下三个配置项 """
-    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service?connect_timeout=2"
+    DATABASE_URL = "postgresql://postgres:postgres@k8s-dev-1-localhost:32100/cpl_service?connect_timeout=2"
 
     # 多少条记录做一次IO提交到DB，默认 5W
     FLUSH_BUFF_SIZE = 10 * 10000

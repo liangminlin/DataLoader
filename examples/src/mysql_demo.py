@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class Config(object):
     """ 配置类，目前支持如下三个配置项 """
-    DATABASE_URL = "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service"
+    DATABASE_URL = "mysql://root:123456@k8s-dev-1-localhost:32205/producer_view_service"
 
     # 多少条记录做一次IO提交到DB，默认 5W
     FLUSH_BUFF_SIZE = 10 * 10000
@@ -36,7 +36,6 @@ def load_cpl_service_data():
         # 如果是UUID字段，请明确指定使用fastuuid()覆盖默认生成策略来提升性能
         uuid=fastuuid()
     ):
-        logger.info(cpl.uuid)
         yield cpl
 
     for cplx in iter_complex_data(10, uuid=fastuuid()):

@@ -55,7 +55,6 @@ def _create_table_object_and_factory(
     fp.writeline("from dataloader.helper import Cache, AutoUUID")
 
     fp.blankline()
-    fp.writeline("NONECOL = '-*None*-'")
 
     # init a db_session
     fp.writeline("db_session = db.init_session('" + dbcfg['url'] + "')")
@@ -78,7 +77,7 @@ def _create_table_object_and_factory(
     fp.writeline("__table_name__ = '" + tbname + "'", 4)
     fp.writeline("__ftable_name__ = '" + full_tbname + "'", 4)
 
-    line = "\"\"\"LOAD DATA LOCAL INFILE '%s' "
+    line = "\"\"\"LOAD DATA LOCAL INFILE '%s' REPLACE "
     line += "INTO TABLE " + full_tbname + " FIELDS TERMINATED BY '|'"
     line += " LINES TERMINATED BY '\n'\"\"\""
     fp.writeline("__load_mysql__ = " + line, 4)
@@ -138,7 +137,7 @@ def _create_table_object_and_factory(
 
     # def iter_<tbname>():
     fp.writeline(
-        "def iter_" + tbname + "(count, retaining=False, auto_incr_cols=[NONECOL], **kwargs):"
+        "def iter_" + tbname + "(count, retaining=False, auto_incr_cols=[], **kwargs):"
     )
     fp.writeline("if not isinstance(count, int):", 4)
     fp.writeline("raise ValueError('count must be integer and gt. 0')", 8)
@@ -148,9 +147,6 @@ def _create_table_object_and_factory(
     fp.writeline("count = 1 if count<1 else count", 4)
 
     fp.writeline("for i, k in enumerate(auto_incr_cols):", 4)
-    fp.writeline("if k == NONECOL:", 8)
-    fp.writeline("auto_incr_cols.pop(i)", 12)
-    fp.writeline("continue", 12)
     fp.writeline("kwargs[k] = _detect_maxv(k, '" + tbname + "')", 8)
 
     fp.blankline()

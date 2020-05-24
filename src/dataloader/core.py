@@ -1,6 +1,6 @@
 from functools import wraps
 
-from dataloader import loader
+from dataloader import loaderX
 from dataloader import logging
 from dataloader import reflector
 from dataloader.ctx import LoaderContext
@@ -40,7 +40,7 @@ class DataLoader(object):
     @time_stat
     def _flush_session_data(self, dbcfg, rec_iter):
         try:
-            loader.flush_data(dbcfg, rec_iter)
+            loaderX.flush_data(dbcfg, rec_iter)
         except Exception as exc:
             logger.exception(exc)
 

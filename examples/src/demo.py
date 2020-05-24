@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 class Config(object):
     DATABASE_URLS = [
-        "postgresql://postgres:postgres@k8s-dev-1.aamcn.com.cn:32100/cpl_service",
-        "mysql://root:123456@k8s-dev-1.aamcn.com.cn:32205/producer_view_service_test"
+        "postgresql://postgres:postgres@k8s-dev-1-localhost:32100/cpl_service",
+        "mysql://root:123456@k8s-dev-1-localhost:32205/producer_view_service_test"
     ]
     SAVE_LOG_TO_FILE = True
 
@@ -56,14 +56,19 @@ def load_cpl_data():
         iter_complex_lms_device, iter_cpl_location, iter_cpl, Cpl
     )
 
-    for c in iter_cpl(10, retaining=True):
+    for c in iter_cpl(10, retaining=True, uuid=fastuuid()):
         yield c
 
-    for cld in iter_complex_lms_device(10):
+    for cld in iter_complex_lms_device(
+        10, complex_uuid=fastuuid(), device_uuid=fastuuid()
+    ):
         yield cld
 
         for cl in iter_cpl_location(
-            8, complex_uuid=cld.complex_uuid, device_uuid=cld.device_uuid, cpl_uuid=incache(Cpl, "uuid")
+            8,
+            complex_uuid=cld.complex_uuid,
+            device_uuid=cld.device_uuid,
+            cpl_uuid=incache(Cpl, "uuid")
         ):
             yield cl
 

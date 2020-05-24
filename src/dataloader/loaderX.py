@@ -46,7 +46,7 @@ def flush_data(dbcfg, rec_iter):
                 }
                 if dbcfg['scheme'] == 'mysql':
                     f = tempfile.NamedTemporaryFile(
-                        mode='w', delete=False
+                        mode='w', buffering=81920, delete=False
                     )
                     rec_buff[rec.__ftable_name__]["buff"] = f
 

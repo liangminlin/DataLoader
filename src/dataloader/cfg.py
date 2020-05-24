@@ -63,6 +63,7 @@ def _postgres_flusher(db_session, full_tbname, sql, buff):
     except Exception as exc:
         db_session.rollback()
         logger.error(exc)
+        return None
 
     return std_data_iter
 

@@ -2,6 +2,7 @@ import os
 import io
 import sys
 import time
+import uuid
 import shutil
 import pkgutil
 from pathlib import Path
@@ -101,6 +102,10 @@ def clean_csv_value(value):
     return str(value).replace('\n', '\\n')
 
 
+def fastuuid():
+    return AutoUUID(uuid.uuid4())
+
+
 def free(tbClazz):
     cache = tbClazz.__dbcfg_ref__['retain_cache'].pop(
         tbClazz.__table_name__
@@ -110,6 +115,11 @@ def free(tbClazz):
 
 def incache(tbClazz, columnStr):
     return Cache(tbClazz, columnStr)
+
+
+class AutoUUID(object):
+    def __init__(self, uuid_):
+        self.uuid_ = str(uuid_)[:-8]
 
 
 class Cache(object):

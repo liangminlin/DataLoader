@@ -52,7 +52,7 @@ def _create_table_object_and_factory(
     fp.writeline("from factory import fuzzy")
     fp.writeline("from dataloader import db")
     fp.writeline("from dataloader import factories")
-    fp.writeline("from dataloader.helper import Cache")
+    fp.writeline("from dataloader.helper import Cache, AutoUUID")
 
     fp.blankline()
     fp.writeline("NONECOL = '-*None*-'")
@@ -154,7 +154,6 @@ def _create_table_object_and_factory(
     fp.writeline("kwargs[k] = _detect_maxv(k, '" + tbname + "')", 8)
 
     fp.blankline()
-
     fp.writeline("for i in range(count):", 4)
     fp.writeline("for k in auto_incr_cols:", 8)
     fp.writeline("kwargs[k] += 1", 12)
@@ -167,6 +166,8 @@ def _create_table_object_and_factory(
     fp.writeline("kwgs[k] = v.value(i)", 16)
     fp.writeline("if kwgs[k] is None:", 16)
     fp.writeline("kwgs.pop(k)", 20)
+    fp.writeline("elif isinstance(v, AutoUUID):", 12)
+    fp.writeline("kwgs[k] = v.uuid_ + str(i).rjust(8, '0')", 16)
 
     fp.blankline()
 

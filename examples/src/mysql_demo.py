@@ -1,7 +1,7 @@
 import logging
 from dataloader import factories
-from dataloader.helper import incache, free
 from dataloader import DataLoader, LoadSession
+from dataloader.helper import incache, free, fastuuid
 
 pvs = LoadSession(__name__)   # 定义Load Session
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class Config(object):
     FLUSH_BUFF_SIZE = 10 * 10000
 
     # 每个批次生成多少条记录, 这个值影响占用内存的大小，默认10W
-    ITER_CHUNK_SIZE = 50 * 10000
+    ITER_CHUNK_SIZE = 20 * 10000
 
     LOG_LEVEL = logging.INFO
     SAVE_LOG_TO_FILE = True
@@ -31,15 +31,20 @@ def load_cpl_service_data():
     )
 
     # 使用retaining声明数据生成后主键字段保留待用
-    for cpl in iter_cpl_data(10 * 10000, retaining=True, uuid=factories.FuzzyUuid()):
+    for cpl in iter_cpl_data(
+        100, retaining=True,
+        # 如果是UUID字段，请明确指定使用fastuuid()覆盖默认生成策略来提升性能
+        uuid=fastuuid()
+    ):
+        logger.info(cpl.uuid)
         yield cpl
 
-    for cplx in iter_complex_data(10, uuid=factories.FuzzyUuid()):
+    for cplx in iter_complex_data(10, uuid=fastuuid()):
         yield cplx
 
         # 使用incache来指定数据从指定表的指定字段获取
         for ccm in iter_cpl_complex_mapping(
-            10 * 10000, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
+            10, cpl_uuid=incache(CplData, "uuid"), complex_uuid=cplx.uuid
         ):
             yield ccm
 

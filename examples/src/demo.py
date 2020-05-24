@@ -1,6 +1,7 @@
 import logging
-from dataloader.helper import free, incache
+
 from dataloader import DataLoader, LoadSession
+from dataloader.helper import free, incache, fastuuid
 
 
 logger = logging.getLogger(__name__)
@@ -21,23 +22,28 @@ cs = LoadSession(__name__)
 @pvs.regist_for("producer_view_service_test")
 def load_pvs_data():
     from target.producer_view_service_test import (
-        iter_complex_data, iter_cpl_data, iter_complex_device_mapping, iter_cpl_locations_mapping, CplData
+        iter_complex_data, iter_cpl_data, CplData,
+        iter_complex_device_mapping, iter_cpl_locations_mapping
     )
 
-    for cpl_data in iter_cpl_data(20, retaining=True):
+    for cpl_data in iter_cpl_data(20, retaining=True, uuid=fastuuid()):
         yield cpl_data
 
-    for cplx_data in iter_complex_data(10):
+    for cplx_data in iter_complex_data(10, uuid=fastuuid()):
         yield cplx_data
 
         for cdm in iter_complex_device_mapping(
-            10, complex_uuid=cplx_data.uuid
+            10,
+            complex_uuid=cplx_data.uuid,
+            device_uuid=fastuuid()
         ):
             yield cdm
 
             for clm in iter_cpl_locations_mapping(
-                10, device_uuid=cdm.device_uuid,
-                complex_uuid=cdm.complex_uuid, cpl_uuid=incache(CplData, "uuid")
+                10,
+                device_uuid=cdm.device_uuid,
+                complex_uuid=cdm.complex_uuid,
+                cpl_uuid=incache(CplData, "uuid")
             ):
                 yield clm
 
